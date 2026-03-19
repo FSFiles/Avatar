@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AvaForge — AI Avatar Video Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:#E8D590;--g3:rgba(201,168,76,.12);--g4:rgba(201,168,76,.06);
+  --bg:#05080F;--bg2:#0A0E1A;--bg3:#0F1525;
+  --tx:#EDE8DF;--tm:rgba(237,232,223,.55);--td:rgba(237,232,223,.28);--tdd:rgba(237,232,223,.13);
+  --b:rgba(201,168,76,.13);--bh:rgba(201,168,76,.32);--bs:rgba(201,168,76,.5);
+  --red:#E24B4A;--grn:#3DBE7A;
+}
+html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+#root{min-height:100vh;position:relative;z-index:1}
+.bg-fx{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,.035) 1px,transparent 1px);background-size:52px 52px}
+.bg-o1{position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,.065) 0%,transparent 68%);top:-250px;left:-200px}
+.bg-o2{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(70,50,180,.055) 0%,transparent 68%);bottom:-200px;right:-180px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes ticker{0%{transform:translateX(110%)}100%{transform:translateX(-110%)}}
+@keyframes wavebar{0%{height:4px}100%{height:22px}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.fadein{animation:fadeUp .35s ease both}
+/* BUTTONS */
+.btn-gold{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 28px;background:linear-gradient(135deg,#C9A84C,#A07830);color:#050810;font-weight:600;font-size:13px;border:none;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.2px;transition:transform .2s,box-shadow .2s,opacity .2s;position:relative}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(201,168,76,.28)}
+.btn-gold:disabled{opacity:.38;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-outline{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 22px;background:transparent;border:1px solid var(--b);color:var(--tm);font-size:12px;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-outline:hover{border-color:var(--bh);color:var(--tx);background:var(--g4)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;background:transparent;border:1px solid var(--b);color:var(--tm);font-size:12px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-ghost:hover{border-color:var(--bh);color:var(--tx)}
+.btn-dl{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:rgba(61,190,122,.08);border:1px solid rgba(61,190,122,.3);color:var(--grn);font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.btn-dl:hover{background:rgba(61,190,122,.16)}
+.btn-dl:disabled{opacity:.5;cursor:not-allowed}
+/* TAG */
+.tag{display:inline-flex;align-items:center;padding:4px 14px;border:1px solid rgba(201,168,76,.32);border-radius:100px;font-size:10px;font-weight:600;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase}
+.badge-ok{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(61,190,122,.1);border:1px solid rgba(61,190,122,.28);border-radius:100px;font-size:11px;color:var(--grn)}
+.badge-gold{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:var(--g3);border:1px solid var(--b);border-radius:100px;font-size:10px;color:var(--gold);font-weight:600}
+/* LOADING */
+.spinner{width:34px;height:34px;border:2.5px solid rgba(201,168,76,.18);border-top-color:var(--gold);border-radius:50%;animation:spin .75s linear infinite}
+.load-full{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:0 32px;height:60px;border-bottom:1px solid var(--b);background:rgba(5,8,15,.9);backdrop-filter:blur(20px);position:sticky;top:0;z-index:200;gap:14px}
+.logo{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;background:linear-gradient(135deg,#C9A84C,#E8D590,#C9A84C);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;cursor:pointer;animation:shimmer 4s linear infinite}
+.nav-links{display:flex;align-items:center;gap:2px;flex:1}
+.nl{padding:7px 13px;font-size:12px;font-weight:500;color:var(--tm);border-radius:6px;cursor:pointer;border:none;background:transparent;font-family:'DM Sans',sans-serif;transition:all .18s;white-space:nowrap}
+.nl:hover{color:var(--tx);background:rgba(255,255,255,.04)}
+.nl.active{color:var(--gold);background:var(--g3)}
+.nl.cta{background:linear-gradient(135deg,#C9A84C,#A07830);color:#050810;font-weight:700;margin-left:6px}
+.nl.cta:hover{opacity:.88;transform:translateY(-1px)}
+.nav-prof{display:flex;align-items:center;gap:8px;padding:5px 11px 5px 7px;background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:10px;cursor:pointer;transition:all .2s;flex-shrink:0;position:relative}
+.nav-prof:hover{border-color:var(--bh)}
+.nav-av{width:28px;height:28px;border-radius:6px;background:var(--g3);border:1px solid rgba(201,168,76,.28);display:flex;align-items:center;justify-content:center;font-size:15px}
+.nav-pname{font-size:12px;font-weight:600;color:var(--tx);line-height:1}
+.nav-pplan{font-size:10px;color:var(--gold);display:flex;align-items:center;gap:3px;margin-top:1px}
+.pdot{width:5px;height:5px;border-radius:50%;background:var(--gold)}
+.dd{position:absolute;top:calc(100% + 8px);right:0;background:rgba(10,14,26,.98);border:1px solid var(--b);border-radius:10px;min-width:175px;padding:5px;backdrop-filter:blur(20px);z-index:300;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:fadeUp .15s ease both}
+.ddi{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:7px;font-size:12px;color:var(--tm);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.ddi:hover{background:rgba(255,255,255,.05);color:var(--tx)}
+.ddi.red:hover{background:rgba(226,75,74,.08);color:var(--red)}
+.dd-sep{height:1px;background:var(--b);margin:3px 0}
+/* LANDING */
+.land-nav{display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;background:transparent;position:fixed;top:0;left:0;right:0;z-index:200;transition:all .3s}
+.land-nav.scrolled{background:rgba(5,8,15,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--b)}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px 60px;position:relative}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border:1px solid rgba(201,168,76,.3);border-radius:100px;font-size:10px;font-weight:600;color:var(--gold);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:26px;background:rgba(201,168,76,.06)}
+.hero-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(44px,8vw,84px);font-weight:700;line-height:1.02;background:linear-gradient(180deg,#fff 0%,#E8D590 45%,#C9A84C 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:20px}
+.hero-sub{font-size:clamp(14px,2vw,16px);color:var(--tm);max-width:480px;line-height:1.85;margin:0 auto 36px;font-weight:300}
+.hero-btns{display:flex;align-items:center;gap:11px;flex-wrap:wrap;justify-content:center;margin-bottom:56px}
+.hero-stats{display:flex;align-items:center;gap:32px;flex-wrap:wrap;justify-content:center}
+.hs-val{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);line-height:1}
+.hs-lbl{font-size:11px;color:var(--td);margin-top:3px}
+.hs-div{width:1px;height:36px;background:var(--b)}
+/* SECTIONS */
+.section{padding:72px 40px;max-width:1100px;margin:0 auto}
+.sec-eyebrow{text-align:center;margin-bottom:10px}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,5vw,46px);font-weight:700;background:linear-gradient(180deg,#fff 0%,#C9A84C 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:12px}
+.sec-sub{text-align:center;font-size:13px;color:var(--tm);max-width:400px;margin:0 auto 44px;line-height:1.85;font-weight:300}
+.steps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--b);border:1px solid var(--b);border-radius:14px;overflow:hidden}
+.step-item{background:var(--bg2);padding:26px 22px;transition:background .2s}
+.step-item:hover{background:var(--bg3)}
+.step-n{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:700;color:rgba(201,168,76,.18);line-height:1;margin-bottom:9px}
+.step-icon{font-size:22px;margin-bottom:9px}
+.step-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:5px}
+.step-desc{font-size:12px;color:var(--tm);line-height:1.7}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:13px}
+.fc{background:var(--bg2);border:1px solid var(--b);border-radius:13px;padding:22px;transition:all .22s}
+.fc:hover{border-color:var(--bh);background:var(--bg3);transform:translateY(-3px)}
+.fc-icon{width:44px;height:44px;border-radius:10px;background:var(--g3);border:1px solid rgba(201,168,76,.2);display:flex;align-items:center;justify-content:center;font-size:19px;margin-bottom:13px}
+.fc-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:5px}
+.fc-desc{font-size:12px;color:var(--tm);line-height:1.75}
+.fc-tag{display:inline-flex;margin-top:9px;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:600}
+.fc-free{background:rgba(61,190,122,.1);color:var(--grn)}
+.fc-pro{background:rgba(130,100,220,.12);color:#a088e8}
+.price-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;max-width:620px;margin:0 auto}
+.pc{background:var(--bg2);border:1px solid var(--b);border-radius:13px;padding:22px}
+.pc.feat{border-color:rgba(201,168,76,.35);background:var(--bg3)}
+.pc-name{font-size:14px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.pc-price{font-family:'Cormorant Garamond',serif;font-size:34px;font-weight:700;color:var(--gold);margin-bottom:14px}
+.pc-price small{font-size:13px;font-weight:400;color:var(--tm);font-family:'DM Sans',sans-serif}
+.pc-feat{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--tm);padding:5px 0;border-bottom:1px solid var(--b)}
+.pc-feat:last-child{border-bottom:none}
+.pf-y{color:var(--grn);font-size:11px}
+.pf-n{color:var(--tdd);font-size:11px}
+.cta-sec{text-align:center;padding:72px 24px;border-top:1px solid var(--b)}
+.cta-h{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,5vw,50px);font-weight:700;background:linear-gradient(180deg,#fff,#C9A84C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:14px}
+.cta-sub{font-size:13px;color:var(--tm);max-width:360px;margin:0 auto 28px;line-height:1.85;font-weight:300}
+.footer{border-top:1px solid var(--b);padding:28px 40px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.fl-link{font-size:12px;color:var(--td);cursor:pointer;transition:color .2s;display:inline-block}
+.fl-link:hover{color:var(--tm)}
+/* AUTH */
+.auth-page{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.auth-left{display:flex;flex-direction:column;justify-content:center;padding:52px 44px;background:linear-gradient(160deg,rgba(10,14,26,.96),rgba(5,8,15,.98));border-right:1px solid var(--b)}
+.auth-h{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,4vw,44px);font-weight:700;line-height:1.1;background:linear-gradient(180deg,#fff 0%,#C9A84C 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:13px}
+.auth-p{font-size:13px;color:var(--tm);line-height:1.85;max-width:320px;margin-bottom:36px;font-weight:300}
+.auth-feats{display:flex;flex-direction:column;gap:12px}
+.af{display:flex;align-items:center;gap:10px}
+.af-icon{width:32px;height:32px;border-radius:7px;background:var(--g3);border:1px solid var(--b);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.af-t{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:1px}
+.af-d{font-size:11px;color:var(--td)}
+.auth-right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 22px;background:var(--bg)}
+.auth-card{width:100%;max-width:390px}
+.auth-tabs{display:flex;background:rgba(255,255,255,.03);border:1px solid var(--b);border-radius:9px;padding:3px;margin-bottom:24px}
+.at{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:500;border-radius:7px;cursor:pointer;color:var(--td);border:none;background:transparent;font-family:'DM Sans',sans-serif;transition:all .2s}
+.at.on{background:linear-gradient(135deg,#C9A84C,#A07830);color:#050810;font-weight:700}
+.ftitle{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;background:linear-gradient(180deg,#fff,#C9A84C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.fsub{font-size:12px;color:var(--tm);margin-bottom:18px;line-height:1.65;font-weight:300}
+.field{margin-bottom:12px}
+.flbl{display:block;font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2.5px;margin-bottom:5px}
+.fw{position:relative}
+.fi{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;opacity:.4}
+.finp{width:100%;padding:11px 14px 11px 38px;background:rgba(255,255,255,.035);border:1px solid rgba(201,168,76,.14);border-radius:8px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+.finp:focus{border-color:var(--bs)}
+.finp::placeholder{color:var(--td)}
+.finp.err{border-color:var(--red)}
+.finp.ok{border-color:var(--grn)}
+.pw-tog{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--td);cursor:pointer;font-size:13px}
+.emsg{font-size:11px;color:var(--red);margin-top:4px}
+.omsg{font-size:11px;color:var(--grn);margin-top:4px}
+.sbars{display:flex;gap:3px;margin-top:5px;margin-bottom:2px}
+.sbar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.07);transition:background .3s}
+.slbl{font-size:10px}
+.opts-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.chk{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.chk-box{width:14px;height:14px;border:1px solid rgba(201,168,76,.28);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;flex-shrink:0}
+.chk-box.on{background:var(--gold);border-color:var(--gold);color:#050810}
+.chk-lbl{font-size:11px;color:var(--tm)}
+.forgot{font-size:11px;color:var(--gold);cursor:pointer}
+.divider{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.div-line{flex:1;height:1px;background:var(--b)}
+.div-txt{font-size:11px;color:var(--td)}
+.soc-row{display:flex;gap:8px;margin-bottom:13px}
+.soc-btn{flex:1;padding:9px;background:rgba(255,255,255,.028);border:1px solid var(--b);border-radius:8px;color:var(--tm);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s}
+.soc-btn:hover{border-color:var(--bh);color:var(--tx)}
+.sw-prompt{text-align:center;font-size:11px;color:var(--td)}
+.sw-link{color:var(--gold);cursor:pointer;font-weight:500}
+.avp-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
+.avp{width:34px;height:34px;border-radius:50%;border:2px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(255,255,255,.04);transition:all .15s}
+.avp.on{border-color:var(--gold);background:var(--g3)}
+.err-box{padding:10px 13px;background:rgba(226,75,74,.07);border:1px solid rgba(226,75,74,.28);border-radius:8px;font-size:12px;color:var(--red);margin-bottom:11px;line-height:1.6}
+.name-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+/* DASHBOARD */
+.home-hero{text-align:center;padding:48px 24px 34px}
+.home-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,6vw,60px);font-weight:700;line-height:1.04;background:linear-gradient(180deg,#fff 0%,#C9A84C 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:11px}
+.home-sub{font-size:13px;color:var(--tm);max-width:380px;margin:0 auto 24px;line-height:1.85;font-weight:300}
+.stats-strip{display:flex;justify-content:center;gap:26px;padding:0 24px 38px;flex-wrap:wrap}
+.ss-icon{font-size:19px;margin-bottom:5px}
+.ss-title{font-size:11px;font-weight:600;color:var(--gold);margin-bottom:2px}
+.ss-desc{font-size:10px;color:var(--td);line-height:1.5}
+.sh{padding:26px 32px 16px}
+.sh-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,#fff,#C9A84C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+.sh-sub{font-size:11px;color:var(--td)}
+.vids-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:13px;padding:0 32px 56px}
+.vid-card{background:var(--bg2);border:1px solid var(--b);border-radius:11px;overflow:hidden;cursor:pointer;transition:all .22s}
+.vid-card:hover{border-color:var(--bh);transform:translateY(-3px);box-shadow:0 12px 36px rgba(0,0,0,.4)}
+.vid-card:hover .play-overlay{opacity:1!important}
+.vid-thumb{height:148px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0A1328,#180A2A);position:relative}
+.vid-lang{position:absolute;top:7px;right:7px;padding:2px 7px;background:rgba(0,0,0,.6);border:1px solid var(--b);border-radius:100px;font-size:10px;color:var(--gold)}
+.vid-body{padding:10px 11px}
+.vid-t{font-size:12px;font-weight:500;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vid-s{font-size:10px;color:var(--td);margin-bottom:6px;line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vid-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--gold)}
+/* FLOW */
+.flow-wrap{max-width:680px;margin:0 auto;padding:28px 16px 56px}
+.card{background:var(--bg2);border:1px solid var(--b);border-radius:13px;padding:22px}
+.steps-bar{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:24px;flex-wrap:wrap;row-gap:6px}
+.sn{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--td);transition:color .3s}
+.sn.active{color:var(--gold)}
+.sn.done{color:rgba(201,168,76,.5)}
+.sdot{width:19px;height:19px;border-radius:50%;border:1.5px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.sdash{width:26px;height:1px;background:var(--b);margin:0 4px}
+.lbl{display:block;font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2.5px;margin-bottom:5px}
+.inp{width:100%;padding:11px 13px;background:rgba(255,255,255,.035);border:1px solid rgba(201,168,76,.14);border-radius:8px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+.inp:focus{border-color:var(--bs)}
+.inp::placeholder{color:var(--td)}
+textarea.inp{min-height:108px;resize:vertical;line-height:1.8}
+.ig{margin-bottom:14px}
+.pills{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.pill{padding:5px 10px;font-size:11px;border:1px solid rgba(201,168,76,.16);background:transparent;color:var(--td);border-radius:6px;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
+.pill.on{border-color:var(--gold);background:var(--g3);color:var(--gold2)}
+.swatches{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px}
+.sw{width:25px;height:25px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s}
+.sw.on{border-color:var(--gold);transform:scale(1.22)}
+.cust-layout{display:grid;grid-template-columns:1fr 182px;gap:15px;align-items:start}
+.av-preview{position:sticky;top:74px;background:rgba(10,14,26,.8);border:1px solid var(--b);border-radius:11px;padding:11px;display:flex;flex-direction:column;align-items:center}
+.av-prev-lbl{font-size:10px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.vgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.vc{padding:10px 11px;background:rgba(255,255,255,.022);border:1px solid var(--b);border-radius:9px;cursor:pointer;transition:all .15s}
+.vc:hover{border-color:var(--bh)}
+.vc.on{border-color:var(--gold);background:var(--g3)}
+.vc-name{font-size:12px;font-weight:500;margin-bottom:2px}
+.vc-sub{font-size:10px;color:var(--td)}
+.vcb{font-size:10px;padding:2px 6px;border-radius:100px}
+.vcb-m{background:rgba(60,100,220,.16);color:#8EAAE8}
+.vcb-f{background:rgba(200,60,110,.16);color:#E890B0}
+.prog-bar{height:3px;background:rgba(201,168,76,.1);border-radius:2px;overflow:hidden;margin-bottom:6px}
+.prog-fill{height:100%;background:linear-gradient(90deg,#C9A84C,#E8D590);border-radius:2px;transition:width .1s linear}
+.gen-ctr{text-align:center;padding:42px 20px}
+.gen-pct{font-family:'Cormorant Garamond',serif;font-size:50px;font-weight:700;color:var(--gold);line-height:1}
+.gen-st{font-size:12px;color:var(--tm);margin-top:5px}
+.vid-frame{background:linear-gradient(160deg,#0A1328,#12082A);border:1px solid var(--b);border-radius:11px;overflow:hidden;margin-bottom:12px}
+.vf-bar{padding:8px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:5px}
+.vfd{width:8px;height:8px;border-radius:50%}
+.vf-url{margin-left:7px;font-size:10px;color:var(--td);font-family:monospace}
+.vf-stage{padding:18px 11px;display:flex;flex-direction:column;align-items:center;gap:11px;min-height:220px}
+.vid-ctls{display:flex;align-items:center;gap:10px}
+.play-btn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--gold);background:var(--g3);color:var(--gold);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.play-btn:hover,.play-btn.on{background:rgba(201,168,76,.85);color:#050810}
+.waveform{display:flex;align-items:center;gap:3px;height:20px}
+.wbar{width:3px;border-radius:2px;background:var(--gold)}
+.ticker-wrap{border-top:1px solid var(--b);padding:7px 13px;overflow:hidden}
+.ticker-txt{font-size:10px;color:var(--tm);white-space:nowrap;display:inline-block;animation:ticker 16s linear infinite}
+.slbl2{font-size:10px;color:var(--gold);font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.fe{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+.grow{flex:1;min-width:90px}
+/* PROFILE */
+.profile-wrap{max-width:640px;margin:0 auto;padding:28px 16px 52px}
+.ph-card{background:var(--bg2);border:1px solid var(--b);border-radius:13px;padding:22px;display:flex;align-items:center;gap:17px;margin-bottom:13px;flex-wrap:wrap}
+.ph-av{width:68px;height:68px;border-radius:11px;background:var(--g3);border:2px solid rgba(201,168,76,.38);display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0}
+.ph-name{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;background:linear-gradient(135deg,#fff,#C9A84C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:2px}
+.ph-email{font-size:11px;color:var(--tm);margin-bottom:6px}
+.sc-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:13px}
+.sc{background:var(--bg2);border:1px solid var(--b);border-radius:11px;padding:13px;text-align:center}
+.sc-v{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold);line-height:1}
+.sc-l{font-size:10px;color:var(--td);margin-top:3px}
+.edit-card{background:var(--bg2);border:1px solid var(--b);border-radius:13px;padding:19px;margin-bottom:13px}
+.edit-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.edit-lbl{font-size:10px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1.8px;display:block;margin-bottom:4px}
+.edit-inp{width:100%;padding:9px 11px;background:rgba(255,255,255,.033);border:1px solid rgba(201,168,76,.14);border-radius:7px;color:var(--tx);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;transition:border-color .2s}
+.edit-inp:focus{border-color:var(--bs)}
+.edit-inp::placeholder{color:var(--td)}
+.saved-t{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(61,190,122,.1);border:1px solid rgba(61,190,122,.28);border-radius:100px;font-size:11px;color:var(--grn);margin-left:7px}
+.mv-card{background:var(--bg2);border:1px solid var(--b);border-radius:13px;padding:17px}
+.mv-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:11px}
+.mv-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)}
+.mv-row:last-child{border-bottom:none}
+.mv-thumb{width:40px;height:40px;border-radius:7px;background:linear-gradient(135deg,#0A1328,#180A2A);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mv-info{flex:1;min-width:0}
+.mv-t{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-m{font-size:10px;color:var(--td);margin-top:2px}
+.del-btn{width:23px;height:23px;border-radius:50%;background:transparent;border:1px solid rgba(226,75,74,.2);color:rgba(226,75,74,.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s;flex-shrink:0}
+.del-btn:hover{background:rgba(226,75,74,.1);border-color:var(--red);color:var(--red)}
+.empty{text-align:center;padding:20px 0;color:var(--td);font-size:12px}
+/* VIDEO MODAL */
+.vid-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);animation:fadeUp .2s ease both}
+.vid-modal{background:var(--bg2);border:1px solid var(--b);border-radius:14px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.vid-modal-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--b)}
+.vid-modal-title{font-family:Cormorant Garamond,serif;font-size:16px;font-weight:700;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;margin-right:10px}
+.vid-modal-close{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid var(--b);color:var(--tm);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s}
+.vid-modal-close:hover{background:rgba(226,75,74,.12);border-color:var(--red);color:var(--red)}
+.vid-modal-stage{display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 16px;background:linear-gradient(135deg,#0A1328,#180A2A)}
+.vid-modal-ctls{display:flex;align-items:center;gap:11px}
+.vid-modal-ticker{border-top:1px solid var(--b);padding:8px 14px;overflow:hidden;background:rgba(0,0,0,.4)}
+.vid-modal-script{padding:14px 16px;font-size:12px;color:var(--tm);line-height:1.85;font-weight:300;max-height:100px;overflow-y:auto;border-top:1px solid var(--b)}
+.vid-modal-meta{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--b);font-size:11px;color:var(--td)}
+/* EXPLORE */
+.explore-wrap{max-width:800px;margin:0 auto;padding:30px 18px 52px}
+/* SCRIPT MODE CARDS */
+.mode-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.mode-card{padding:22px 18px;background:var(--bg2);border:1.5px solid var(--b);border-radius:12px;cursor:pointer;transition:all .2s;text-align:center}
+.mode-card:hover{border-color:var(--bh);background:var(--bg3);transform:translateY(-2px)}
+.mode-card.on{border-color:var(--gold);background:var(--g3)}
+.mode-icon{font-size:30px;margin-bottom:10px}
+.mode-title{font-size:13px;font-weight:600;color:var(--tx);margin-bottom:4px}
+.mode-desc{font-size:11px;color:var(--tm);line-height:1.6}
+@media(max-width:480px){.mode-cards{grid-template-columns:1fr}}
+/* MOBILE */
+@media(max-width:720px){.auth-page{grid-template-columns:1fr}.auth-left{display:none}.price-grid{grid-template-columns:1fr}}
+@media(max-width:580px){.cust-layout{grid-template-columns:1fr}.vids-grid,.sh{padding-left:15px;padding-right:15px}.vgrid{grid-template-columns:1fr}}
+@media(max-width:500px){.nav{padding:0 14px}.nl span{display:none}.nl{padding:7px 9px}}
+</style>
+</head>
+<body>
+<div class="bg-fx"><div class="bg-grid"></div><div class="bg-o1"></div><div class="bg-o2"></div></div>
+<div id="root">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#05080F">
+    <div style="font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;background:linear-gradient(135deg,#C9A84C,#E8D590);-webkit-background-clip:text;-webkit-text-fill-color:transparent">AvaForge</div>
+    <div style="width:36px;height:36px;border:2.5px solid rgba(201,168,76,.15);border-top-color:#C9A84C;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <div style="font-size:12px;color:rgba(237,232,223,.38)">Starting up…</div>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onerror="window._sbFail=true"></script>
+<script>
+/* ── Pure React.createElement — NO BABEL, NO HTM, works from file:// ── */
+const {useState,useEffect,useRef,createElement:ce,Fragment}=React;
+const e=(t,p,...c)=>ce(t,p||null,...c);
+
+/* ── Supabase safe init ── */
+let SB=null;
+try{if(typeof supabase!=='undefined')SB=supabase.createClient('https://gzcpebjhlacfrrcsggml.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6Y3BlYmpobGFjZnJyY3NnZ21sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4MDM3MTksImV4cCI6MjA4OTM3OTcxOX0.pf2mkUz2I_gL3aL_467WmpUtLc1UlrB9OBYlysGCSuA');}catch(err){console.warn('SB:',err);}
+const db={
+  from:t=>({
+    select:c=>({eq:(k,v)=>({single:()=>SB?SB.from(t).select(c).eq(k,v).single():Promise.resolve({data:null,error:'no-sb'})}),order:(k,o)=>({limit:n=>SB?SB.from(t).select(c).order(k,o).limit(n):Promise.resolve({data:[],error:null})})}),
+    insert:d=>({select:()=>({single:()=>SB?SB.from(t).insert(d).select().single():Promise.resolve({data:null,error:'no-sb'})})}),
+    update:d=>({eq:(k,v)=>SB?SB.from(t).update(d).eq(k,v):Promise.resolve({data:null,error:null})}),
+    delete:()=>({eq:(k,v)=>SB?SB.from(t).delete().eq(k,v):Promise.resolve({data:null,error:null})})
+  }),
+  auth:{
+    getSession:()=>SB?SB.auth.getSession():Promise.resolve({data:{session:null},error:null}),
+    signInWithPassword:c=>SB?SB.auth.signInWithPassword(c):Promise.resolve({data:null,error:{message:'Open from a web server for auth.'}}),
+    signUp:c=>SB?SB.auth.signUp(c):Promise.resolve({data:null,error:{message:'Open from a web server for auth.'}}),
+    signOut:()=>SB?SB.auth.signOut():Promise.resolve({}),
+    onAuthStateChange:cb=>SB?SB.auth.onAuthStateChange(cb):{data:{subscription:{unsubscribe:()=>{}}}}
+  }
+};
+
+/* ── Constants ── */
+const SKINS={Fair:'#FDDBB4',Light:'#F1C27D',Medium:'#C68642',Tan:'#8D5524',Deep:'#4A2912'};
+const HAIRS={Black:'#1C1C1C',Brown:'#6B4226',Blonde:'#E0B840',Red:'#B03A2E',Gray:'#909090'};
+const HAIR_TYPES=['Straight','Curly','Wavy','Buzz Cut','Long'];
+const GLASSES=['None','Aviator','Round','Square'];
+const CHAINS=['None','Gold chain','Silver chain'];
+const VOICES=[
+  {id:'em1',name:'David',lang:'English',gender:'Male',desc:'American'},
+  {id:'em2',name:'James',lang:'English',gender:'Male',desc:'British'},
+  {id:'ef1',name:'Emma',lang:'English',gender:'Female',desc:'American'},
+  {id:'ef2',name:'Sophie',lang:'English',gender:'Female',desc:'British'},
+  {id:'tm1',name:'Arjun',lang:'Tamil',gender:'Male',desc:'Chennai'},
+  {id:'tm2',name:'Kumar',lang:'Tamil',gender:'Male',desc:'Madurai'},
+  {id:'tf1',name:'Priya',lang:'Tamil',gender:'Female',desc:'Chennai'},
+  {id:'tf2',name:'Kavya',lang:'Tamil',gender:'Female',desc:'Coimbatore'},
+];
+const WAVE_H=[8,16,22,14,20,10,18,24,12,20,16,8];
+const DEF={gender:'Male',age:'Young Adult',skinTone:'Light',hairType:'Straight',hairColor:'Black',sunglasses:'None',chain:'None',avatarName:''};
+const AVATARS=['🧑','👨','👩','🧔','👱','🧕'];
+const GROQ_KEY='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';
+const mapV=v=>({id:v.id,title:v.title,script:v.script,voiceName:v.voice_name,lang:v.language,config:v.config||DEF,user_id:v.user_id});
+const fetchProfile=async uid=>{if(!SB)return null;try{const{data,error}=await Promise.race([db.from('profiles').select('*').eq('id',uid).single(),new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),5000))]);return error?null:data;}catch{return null;}};
+const pwStr=pw=>{let s=0;if(pw.length>=8)s++;if(pw.length>=12)s++;if(/[A-Z]/.test(pw))s++;if(/[0-9]/.test(pw))s++;if(/[^A-Za-z0-9]/.test(pw))s++;return Math.min(s,4);};
+const STR_L=['','Weak','Fair','Good','Strong'],STR_C=['','#E24B4A','#EF9F27','#C9A84C','#3DBE7A'];
+
+/* ── AvatarSVG using React.createElement ── */
+function AvatarSVG({cfg,speaking=false,size=200}){
+  const skin=SKINS[cfg.skinTone]||SKINS.Light,hair=HAIRS[cfg.hairColor]||HAIRS.Black;
+  const fem=cfg.gender==='Female',eb=cfg.hairColor==='Blonde'?'#8B6914':hair,id='g'+size;
+  const s=v=>v;
+  const svgProps={viewBox:'0 0 360 440',xmlns:'http://www.w3.org/2000/svg',style:{width:size,height:size*1.2,flexShrink:0}};
+  
+  const hairEl=()=>{
+    if(cfg.hairType==='Buzz Cut')return e('ellipse',{cx:'180',cy:'122',rx:'87',ry:'38',fill:hair});
+    const top=e('path',{d:'M93 172 Q97 95 180 88 Q263 95 267 172 Q258 138 238 128 Q180 110 122 128Z',fill:hair});
+    const sideL=e('rect',{x:'93',y:'135',width:'20',height:'95',rx:'8',fill:hair});
+    const sideR=e('rect',{x:'247',y:'135',width:'20',height:'95',rx:'8',fill:hair});
+    if(cfg.hairType==='Curly'){
+      const bumps=[130,150,170,190,210,230].map((x,i)=>e('circle',{key:i,cx:x,cy:100+i%2*7,r:'20',fill:hair}));
+      return e(Fragment,null,e('ellipse',{cx:'180',cy:'110',rx:'92',ry:'50',fill:hair}),...bumps,...(fem?[sideL,sideR]:[]));
+    }
+    if(cfg.hairType==='Long')return e(Fragment,null,top,e('rect',{x:'93',y:'140',width:'22',height:'175',rx:'10',fill:hair}),e('rect',{x:'245',y:'140',width:'22',height:'175',rx:'10',fill:hair}));
+    if(cfg.hairType==='Wavy'){
+      const wL=e('path',{d:'M93 148 Q105 128 117 148 Q129 168 105 182',stroke:hair,strokeWidth:'18',fill:'none',strokeLinecap:'round'});
+      const wR=e('path',{d:'M243 148 Q255 128 267 148 Q255 168 250 180',stroke:hair,strokeWidth:'18',fill:'none',strokeLinecap:'round'});
+      return e(Fragment,null,top,...(fem?[wL,wR]:[]));
+    }
+    return e(Fragment,null,top,...(fem?[sideL,sideR]:[]));
+  };
+
+  const glassEl=()=>{
+    if(cfg.sunglasses==='None')return e(Fragment,null,
+      e('ellipse',{cx:'150',cy:'186',rx:'15',ry:'13',fill:'white'}),e('circle',{cx:'152',cy:'187',r:'8',fill:'#1a1a1a'}),e('circle',{cx:'155',cy:'184',r:'2.5',fill:'white'}),
+      e('ellipse',{cx:'210',cy:'186',rx:'15',ry:'13',fill:'white'}),e('circle',{cx:'212',cy:'187',r:'8',fill:'#1a1a1a'}),e('circle',{cx:'215',cy:'184',r:'2.5',fill:'white'})
+    );
+    const gc=cfg.sunglasses==='Aviator'?'rgba(10,20,50,0.85)':cfg.sunglasses==='Round'?'rgba(10,40,20,0.85)':'rgba(0,0,0,0.88)';
+    const gs=cfg.sunglasses==='Aviator'?'#BFA060':'#666';
+    const bridge=e('path',{d:'M171 185L189 185',stroke:gs,strokeWidth:'2'});
+    const armL=e('path',{d:'M90 178L129 184',stroke:gs,strokeWidth:'1.5'});
+    const armR=e('path',{d:'M231 184L270 178',stroke:gs,strokeWidth:'1.5'});
+    if(cfg.sunglasses==='Round')return e(Fragment,null,
+      e('circle',{cx:'150',cy:'186',r:'19',fill:gc,stroke:gs,strokeWidth:'2'}),
+      e('circle',{cx:'210',cy:'186',r:'19',fill:gc,stroke:gs,strokeWidth:'2'}),
+      e('path',{d:'M169 186L191 186',stroke:gs,strokeWidth:'2'}),
+      e('path',{d:'M90 182L131 186',stroke:'#666',strokeWidth:'1.5'}),
+      e('path',{d:'M229 186L270 182',stroke:'#666',strokeWidth:'1.5'})
+    );
+    if(cfg.sunglasses==='Square')return e(Fragment,null,
+      e('rect',{x:'129',y:'174',width:'42',height:'26',rx:'4',fill:gc,stroke:'#444',strokeWidth:'2'}),
+      e('rect',{x:'189',y:'174',width:'42',height:'26',rx:'4',fill:gc,stroke:'#444',strokeWidth:'2'}),
+      e('path',{d:'M171 186L189 186',stroke:'#444',strokeWidth:'2'}),
+      e('path',{d:'M90 182L129 186',stroke:'#555',strokeWidth:'1.5'}),
+      e('path',{d:'M231 186L270 182',stroke:'#555',strokeWidth:'1.5'})
+    );
+    return e(Fragment,null,
+      e('ellipse',{cx:'150',cy:'186',rx:'21',ry:'17',fill:gc,stroke:gs,strokeWidth:'2'}),
+      e('ellipse',{cx:'210',cy:'186',rx:'21',ry:'17',fill:gc,stroke:gs,strokeWidth:'2'}),
+      bridge,armL,armR
+    );
+  };
+
+  const mouthEl=speaking
+    ?e('ellipse',{cx:'180',cy:'248',rx:'20',ry:'10',fill:'#7A1840',stroke:'#C06080',strokeWidth:'1.5'},e('animate',{attributeName:'ry',values:'4;12;5;11;4',dur:'0.42s',repeatCount:'indefinite'}))
+    :fem?e('path',{d:'M162 247 Q180 260 198 247',stroke:'#C06080',strokeWidth:'2.5',fill:'none',strokeLinecap:'round'})
+       :e('path',{d:'M163 248 Q180 258 197 248',stroke:'#906060',strokeWidth:'2.5',fill:'none',strokeLinecap:'round'});
+
+  const chainEl=cfg.chain==='Gold chain'?e(Fragment,null,
+    e('path',{d:'M140 308 Q180 342 220 308',stroke:'#FFD700',strokeWidth:'3',fill:'none',strokeLinecap:'round'}),
+    e('circle',{cx:'180',cy:'335',r:'4',fill:'#FFD700'})):
+    cfg.chain==='Silver chain'?e(Fragment,null,
+    e('path',{d:'M140 308 Q180 342 220 308',stroke:'#C8C8C8',strokeWidth:'3',fill:'none',strokeLinecap:'round'}),
+    e('circle',{cx:'180',cy:'335',r:'4',fill:'#C8C8C8'})):null;
+
+  return e('svg',svgProps,
+    e('defs',null,e('radialGradient',{id,cx:'50%',cy:'38%',r:'58%'},
+      e('stop',{offset:'0%',stopColor:skin}),e('stop',{offset:'100%',stopColor:skin,stopOpacity:'0.86'}))),
+    e('path',{d:fem?'M40 440 Q65 355 115 325 Q155 310 180 310 Q205 310 245 325 Q295 355 320 440Z':'M28 440 Q55 345 108 318 Q150 302 180 302 Q210 302 252 318 Q305 345 332 440Z',fill:fem?'#5B3A7E':'#1A2744'}),
+    e('rect',{x:'160',y:'275',width:'40',height:'48',rx:'10',fill:skin}),
+    chainEl,
+    e('ellipse',{cx:'180',cy:'195',rx:'88',ry:'100',fill:'url(#'+id+')'}),
+    hairEl(),
+    e('ellipse',{cx:'95',cy:'205',rx:'12',ry:'17',fill:skin}),
+    e('ellipse',{cx:'265',cy:'205',rx:'12',ry:'17',fill:skin}),
+    e('path',{d:'M132 168 Q150 161 166 167',stroke:eb,strokeWidth:'2.5',fill:'none',strokeLinecap:'round'}),
+    e('path',{d:'M194 167 Q210 161 228 168',stroke:eb,strokeWidth:'2.5',fill:'none',strokeLinecap:'round'}),
+    glassEl(),
+    e('path',{d:'M180 200L174 218 Q180 223 186 218Z',fill:skin}),
+    e('path',{d:'M174 218 Q180 222 186 218',stroke:'#B08060',strokeWidth:'1.5',fill:'none',strokeLinecap:'round'}),
+    mouthEl,
+    cfg.avatarName&&e('text',{x:'180',y:'430',textAnchor:'middle',fill:'#C9A84C',fontSize:'13',fontFamily:'serif',fontWeight:'700',letterSpacing:'3'},cfg.avatarName.toUpperCase().substring(0,14))
+  );
+}
+
+/* ── LoginForm ── */
+function LoginForm({onSwitch,onDone}){
+  const [email,setEmail]=useState('');
+  const [pw,setPw]=useState('');
+  const [showPw,setShowPw]=useState(false);
+  const [loading,setL]=useState(false);
+  const [errors,setE]=useState({});
+  const [authErr,setAE]=useState('');
+  const submit=async()=>{
+    const er={};
+    if(!email.includes('@'))er.email='Enter a valid email';
+    if(pw.length<6)er.pw='Min 6 characters';
+    if(Object.keys(er).length){setE(er);return;}
+    setE({});setAE('');setL(true);
+    const{data,error}=await db.auth.signInWithPassword({email,password:pw});
+    if(error){setAE(error.message);setL(false);return;}
+    const p=await fetchProfile(data.user.id);
+    setL(false);onDone(data.user,p||{id:data.user.id,name:email.split('@')[0],email,avatar:'🧑',bio:'',plan:'free',joined:'2026'});
+  };
+  return e('div',{className:'fadein'},
+    e('div',{className:'ftitle'},'Welcome back'),
+    e('div',{className:'fsub'},'Sign in to your AvaForge account.'),
+    e('div',{className:'divider'},e('div',{className:'div-line'}),e('div',{className:'div-txt'},'continue with email'),e('div',{className:'div-line'})),
+    e('div',{className:'soc-row'},e('button',{className:'soc-btn'},'🌐 Google'),e('button',{className:'soc-btn'},'🍎 Apple')),
+    authErr&&e('div',{className:'err-box'},'⚠ ',authErr),
+    e('div',{className:'field'},
+      e('label',{className:'flbl'},'Email'),
+      e('div',{className:'fw'},
+        e('span',{className:'fi'},'✉'),
+        e('input',{className:'finp'+(errors.email?' err':email?' ok':''),type:'email',placeholder:'you@example.com',value:email,onInput:ev=>{setEmail(ev.target.value);setE(x=>({...x,email:''}));}})
+      ),
+      errors.email&&e('div',{className:'emsg'},'⚠ ',errors.email)
+    ),
+    e('div',{className:'field'},
+      e('label',{className:'flbl'},'Password'),
+      e('div',{className:'fw'},
+        e('span',{className:'fi'},'🔒'),
+        e('input',{className:'finp'+(errors.pw?' err':''),type:showPw?'text':'password',placeholder:'Your password',value:pw,onInput:ev=>{setPw(ev.target.value);setE(x=>({...x,pw:''}));},onKeyDown:ev=>ev.key==='Enter'&&submit()}),
+        e('button',{className:'pw-tog',onClick:()=>setShowPw(s=>!s)},showPw?'🙈':'👁')
+      ),
+      errors.pw&&e('div',{className:'emsg'},'⚠ ',errors.pw)
+    ),
+    e('div',{className:'opts-row'},e('span',null),e('span',{className:'forgot'},'Forgot password?')),
+    e('button',{className:'btn-gold',style:{width:'100%',marginBottom:13},onClick:submit,disabled:loading},loading?'Signing in…':'Sign in →'),
+    e('div',{className:'sw-prompt'},'No account? ',e('span',{className:'sw-link',onClick:onSwitch},'Create one free'))
+  );
+}
+
+/* ── SignupForm ── */
+function SignupForm({onSwitch,onDone}){
+  const [fn,setFn]=useState('');
+  const [email,setEmail]=useState('');
+  const [pw,setPw]=useState('');
+  const [cpw,setCpw]=useState('');
+  const [showPw,setShowPw]=useState(false);
+  const [showCpw,setShowCpw]=useState(false);
+  const [agree,setAgree]=useState(false);
+  const [av,setAv]=useState('🧑');
+  const [loading,setL]=useState(false);
+  const [errors,setE]=useState({});
+  const [authErr,setAE]=useState('');
+  const [emailSent,setES]=useState(false);
+  const [str,setStr]=useState(0);
+  const validate=()=>{const er={};if(!fn.trim())er.fn='Required';if(!email.includes('@'))er.email='Valid email needed';if(pw.length<8)er.pw='Min 8 characters';if(pw!==cpw)er.cpw="Passwords don't match";if(!agree)er.agree='Please accept terms';return er;};
+  const submit=async()=>{
+    const er=validate();if(Object.keys(er).length){setE(er);return;}
+    setE({});setAE('');setL(true);
+    const{data,error}=await db.auth.signUp({email,password:pw});
+    if(error){setAE(error.message);setL(false);return;}
+    if(data.user){
+      const joined=new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+      await db.from('profiles').insert({id:data.user.id,name:fn,email,avatar:av,bio:'',plan:'free',joined});
+      if(!data.session){setES(true);setL(false);return;}
+      const p=await fetchProfile(data.user.id);setL(false);
+      onDone(data.user,p||{id:data.user.id,name:fn,email,avatar:av,bio:'',plan:'free',joined});
+    }else setL(false);
+  };
+  if(emailSent)return e('div',{className:'fadein',style:{textAlign:'center',padding:'22px 0'}},
+    e('div',{style:{fontSize:42,marginBottom:14}},'📧'),
+    e('div',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:24,fontWeight:700,marginBottom:8}},'Check your inbox!'),
+    e('div',{style:{fontSize:13,color:'var(--tm)',lineHeight:1.8}},
+      'Confirmation sent to ',e('strong',{style:{color:'var(--gold)'}},email)
+    ),
+    e('div',{style:{fontSize:11,color:'var(--td)',marginTop:10,padding:'9px 13px',background:'var(--g3)',border:'1px solid var(--b)',borderRadius:8,lineHeight:1.7}},
+      'Tip: Disable email confirmation in Supabase → Auth → Settings for instant login'
+    )
+  );
+  return e('div',{className:'fadein'},
+    e('div',{className:'ftitle'},'Create account'),
+    e('div',{className:'fsub'},'Join AvaForge free — no credit card needed.'),
+    authErr&&e('div',{className:'err-box'},'⚠ ',authErr),
+    e('div',{className:'field'},
+      e('label',{className:'flbl'},'Choose your avatar'),
+      e('div',{className:'avp-row'},AVATARS.map(a=>e('div',{key:a,className:'avp'+(av===a?' on':''),onClick:()=>setAv(a)},a)))
+    ),
+    e('div',{className:'name-row'},
+      e('div',{className:'field'},
+        e('label',{className:'flbl'},'First name'),
+        e('div',{className:'fw'},e('span',{className:'fi'},'👤'),e('input',{className:'finp'+(errors.fn?' err':fn?' ok':''),placeholder:'First',value:fn,onInput:ev=>{setFn(ev.target.value);setE(x=>({...x,fn:''}));}})),
+        errors.fn&&e('div',{className:'emsg'},'⚠ ',errors.fn)
+      ),
+      e('div',{className:'field'},
+        e('label',{className:'flbl'},'Last name'),
+        e('div',{className:'fw'},e('span',{className:'fi'},'👤'),e('input',{className:'finp',placeholder:'Last'}))
+      )
+    ),
+    e('div',{className:'field'},
+      e('label',{className:'flbl'},'Email address'),
+      e('div',{className:'fw'},e('span',{className:'fi'},'✉'),e('input',{className:'finp'+(errors.email?' err':email?' ok':''),type:'email',placeholder:'you@example.com',value:email,onInput:ev=>{setEmail(ev.target.value);setE(x=>({...x,email:''}));}})),
+      errors.email&&e('div',{className:'emsg'},'⚠ ',errors.email)
+    ),
+    e('div',{className:'field'},
+      e('label',{className:'flbl'},'Password'),
+      e('div',{className:'fw'},
+        e('span',{className:'fi'},'🔒'),
+        e('input',{className:'finp'+(errors.pw?' err':''),type:showPw?'text':'password',placeholder:'Min. 8 characters',value:pw,onInput:ev=>{setPw(ev.target.value);setStr(pwStr(ev.target.value));setE(x=>({...x,pw:''}));}}),
+        e('button',{className:'pw-tog',onClick:()=>setShowPw(s=>!s)},showPw?'🙈':'👁')
+      ),
+      pw&&e('div',null,
+        e('div',{className:'sbars'},STR_L.slice(1).map((_,i)=>e('div',{key:i,className:'sbar',style:{background:i<str?STR_C[str]:'rgba(255,255,255,.07)'}}))),
+        e('div',{className:'slbl',style:{color:STR_C[str]}},STR_L[str])
+      ),
+      errors.pw&&e('div',{className:'emsg'},'⚠ ',errors.pw)
+    ),
+    e('div',{className:'field'},
+      e('label',{className:'flbl'},'Confirm password'),
+      e('div',{className:'fw'},
+        e('span',{className:'fi'},'🔒'),
+        e('input',{className:'finp'+(errors.cpw?' err':cpw&&cpw===pw?' ok':''),type:showCpw?'text':'password',placeholder:'Repeat password',value:cpw,onInput:ev=>{setCpw(ev.target.value);setE(x=>({...x,cpw:''}));}}),
+        e('button',{className:'pw-tog',onClick:()=>setShowCpw(s=>!s)},showCpw?'🙈':'👁')
+      ),
+      cpw&&cpw===pw&&e('div',{className:'omsg'},'✓ Passwords match'),
+      errors.cpw&&e('div',{className:'emsg'},'⚠ ',errors.cpw)
+    ),
+    e('div',{className:'opts-row',style:{marginBottom:errors.agree?4:12}},
+      e('div',{className:'chk',onClick:()=>{setAgree(a=>!a);setE(x=>({...x,agree:''}));}},
+        e('div',{className:'chk-box'+(agree?' on':'')},agree?'✓':''),
+        e('span',{className:'chk-lbl'},'I agree to ',e('span',{style:{color:'var(--gold)'}},'Terms & Privacy'))
+      )
+    ),
+    errors.agree&&e('div',{className:'emsg',style:{marginBottom:10}},'⚠ ',errors.agree),
+    e('button',{className:'btn-gold',style:{width:'100%',marginBottom:12},onClick:submit,disabled:loading},loading?'Creating account…':'Create free account →'),
+    e('div',{className:'sw-prompt'},'Have an account? ',e('span',{className:'sw-link',onClick:onSwitch},'Sign in'))
+  );
+}
+
+/* ── AuthPage ── */
+function AuthPage({startTab,onLogin}){
+  const [tab,setTab]=useState(startTab||'login');
+  return e('div',{className:'auth-page fadein'},
+    e('div',{className:'auth-left'},
+      e('div',{style:{marginBottom:36}},e('div',{className:'logo',style:{fontSize:'Cormorant Garamond,serif'}},'AvaForge')),
+      e('div',{className:'auth-h'},'Your AI Avatar',e('br'),'Video Studio'),
+      e('div',{className:'auth-p'},'Create professional avatar videos with AI-generated scripts in English and Tamil. All data saved to Supabase.'),
+      e('div',{className:'auth-feats'},
+        [['⚡','AI script generation','Groq AI writes your script instantly'],
+         ['🎨','Full avatar customization','Skin, hair, glasses, chains & more'],
+         ['🎙️','8 unique voices','English & Tamil, male & female'],
+         ['🗄️','Supabase backend','All data saved permanently']
+        ].map(([ic,t,d])=>e('div',{key:t,className:'af'},
+          e('div',{className:'af-icon'},ic),
+          e('div',null,e('div',{className:'af-t'},t),e('div',{className:'af-d'},d))
+        ))
+      )
+    ),
+    e('div',{className:'auth-right'},
+      e('div',{className:'auth-card'},
+        e('div',{className:'auth-tabs'},
+          e('button',{className:'at'+(tab==='login'?' on':''),onClick:()=>setTab('login')},'Sign In'),
+          e('button',{className:'at'+(tab==='signup'?' on':''),onClick:()=>setTab('signup')},'Create Account')
+        ),
+        tab==='login'
+          ?e(LoginForm,{onSwitch:()=>setTab('signup'),onDone:(u,p)=>onLogin(u,p)})
+          :e(SignupForm,{onSwitch:()=>setTab('login'),onDone:(u,p)=>onLogin(u,p)})
+      )
+    )
+  );
+}
+
+/* ── NavBar ── */
+function NavBar({profile,screen,setScreen,onLogout}){
+  const [dd,setDd]=useState(false);
+  const ref=useRef(null);
+  useEffect(()=>{
+    const h=ev=>{if(ref.current&&!ref.current.contains(ev.target))setDd(false);};
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h);
+  },[]);
+  const inFlow=['title','script','customize','voice','generating','video'].includes(screen);
+  return e('nav',{className:'nav'},
+    e('div',{className:'logo',onClick:()=>setScreen('home')},'AvaForge'),
+    e('div',{className:'nav-links'},
+      e('button',{className:'nl'+(screen==='home'?' active':''),onClick:()=>setScreen('home')},'🏠 ',e('span',null,'Home')),
+      e('button',{className:'nl'+(inFlow?' active':'')+' cta',onClick:()=>setScreen('title')},'✦ ',e('span',null,'Create Avatar')),
+      e('button',{className:'nl'+(screen==='explore'?' active':''),onClick:()=>setScreen('explore')},'🔭 ',e('span',null,'Explore'))
+    ),
+    e('div',{className:'nav-prof',ref,onClick:()=>setDd(o=>!o)},
+      e('div',{className:'nav-av'},profile?.avatar||'🧑'),
+      e('div',null,
+        e('div',{className:'nav-pname'},profile?.name||'User'),
+        e('div',{className:'nav-pplan'},e('div',{className:'pdot'}),'Free Plan')
+      ),
+      e('span',{style:{fontSize:9,color:'var(--td)',marginLeft:2}},dd?'▲':'▼'),
+      dd&&e('div',{className:'dd'},
+        e('div',{className:'ddi',onClick:()=>{setScreen('profile');setDd(false);}},'👤  My profile'),
+        e('div',{className:'ddi',onClick:()=>{setScreen('home');setDd(false);}},'🏠  Dashboard'),
+        e('div',{className:'ddi',onClick:()=>{setScreen('explore');setDd(false);}},'🔭  Explore features'),
+        e('div',{className:'dd-sep'}),
+        e('div',{className:'ddi',style:{opacity:.4,cursor:'default'}},'⭐  Upgrade to Pro'),
+        e('div',{className:'dd-sep'}),
+        e('div',{className:'ddi red',onClick:()=>{setDd(false);onLogout();}},'🚪  Sign out')
+      )
+    )
+  );
+}
+
+/* ── Landing ── */
+function Landing({onLogin}){
+  const [scrolled,setScrolled]=useState(false);
+  useEffect(()=>{const h=()=>setScrolled(window.scrollY>40);window.addEventListener('scroll',h);return()=>window.removeEventListener('scroll',h);},[]);
+  const demoAvs=[
+    {...DEF,skinTone:'Light',hairColor:'Black',chain:'Gold chain',avatarName:'ALEX',sunglasses:'Aviator'},
+    {...DEF,gender:'Female',skinTone:'Fair',hairType:'Long',hairColor:'Brown',sunglasses:'Round',chain:'Silver chain',avatarName:'EMMA'},
+    {...DEF,skinTone:'Medium',hairType:'Curly',hairColor:'Black',chain:'Gold chain',avatarName:'ARJUN'},
+  ];
+  const feats=[
+    ['⚡','AI Script Generation','Groq AI writes a 30-60 second professional speech script instantly in English or Tamil.','free'],
+    ['🎨','Full Avatar Customization','Gender, age, 5 skin tones, 5 hair types, 5 hair colors, 4 sunglasses, 3 chain options.','free'],
+    ['🎙️','8 Unique Voices','4 English (American/British) and 4 Tamil voices (Chennai, Madurai, Coimbatore).','free'],
+    ['💬','Lip Sync Animation','Avatar mouth moves naturally with animated waveform and scrolling script ticker.','free'],
+    ['🌐','Tamil Language','Generate scripts and speak in Tamil natively.','free'],
+    ['🗄️','Supabase Database','All profiles, videos, and accounts saved permanently.','free'],
+    ['📤','Public Gallery','Publish videos to the community gallery.','free'],
+    ['⬇️','Download Video','Download your avatar video as a .webm/.mp4 file.','free'],
+    ['⭐','Pro Voices','Studio-quality voices — coming soon.','pro'],
+    ['🎬','HD Video Export','Export MP4 with full audio — coming soon.','pro'],
+  ];
+  const priceFree=[['AI scripts & avatar','y'],['8 voices EN+Tamil','y'],['Public gallery','y'],['Download video','y'],['HD MP4 export','n'],['Pro voices','n']];
+  const pricePro=priceFree.map(([f])=>[f,'y']);
+
+  return e('div',null,
+    e('nav',{className:'land-nav'+(scrolled?' scrolled':'')},
+      e('div',{className:'logo'},'AvaForge'),
+      e('div',{style:{display:'flex',alignItems:'center',gap:28}},
+        e('span',{style:{fontSize:13,color:'var(--tm)',cursor:'pointer'}},'Features'),
+        e('span',{style:{fontSize:13,color:'var(--tm)',cursor:'pointer'}},'Pricing')
+      ),
+      e('div',{style:{display:'flex',gap:9}},
+        e('button',{className:'btn-outline',style:{padding:'8px 16px',fontSize:12},onClick:()=>onLogin('login')},'Sign in'),
+        e('button',{className:'btn-gold',style:{padding:'8px 16px',fontSize:12},onClick:()=>onLogin('signup')},'Get started free')
+      )
+    ),
+    e('div',{className:'hero'},
+      ...demoAvs.map((c,i)=>e('div',{key:i,style:{position:'absolute',left:i===0?'4%':i===2?'auto':'auto',right:i===2?'4%':'auto',top:'22%',opacity:.18,transform:'rotate('+(i===0?-8:6)+'deg)',animation:`float ${4+i}s ${i*.6}s ease-in-out infinite`}},e(AvatarSVG,{cfg:c,size:78}))),
+      e('div',{className:'hero-tag'},'✦  AI-Powered Avatar Studio'),
+      e('h1',{className:'hero-h1'},'Create AI Avatar',e('br'),'Videos in Minutes'),
+      e('p',{className:'hero-sub'},'Generate professional scripts, customize your 3D avatar, select from 8 voices in English and Tamil — all saved to your Supabase dashboard.'),
+      e('div',{className:'hero-btns'},
+        e('button',{className:'btn-gold',style:{padding:'14px 34px',fontSize:14},onClick:()=>onLogin('signup')},'▶  Start creating free'),
+        e('button',{className:'btn-outline',style:{padding:'13px 26px',fontSize:13},onClick:()=>onLogin('login')},'Sign in')
+      ),
+      e('div',{className:'hero-stats'},
+        e('div',null,e('div',{className:'hs-val'},'8+'),e('div',{className:'hs-lbl'},'Unique Voices')),
+        e('div',{className:'hs-div'}),
+        e('div',null,e('div',{className:'hs-val'},'2'),e('div',{className:'hs-lbl'},'Languages')),
+        e('div',{className:'hs-div'}),
+        e('div',null,e('div',{className:'hs-val'},'∞'),e('div',{className:'hs-lbl'},'Free Videos'))
+      )
+    ),
+    e('div',{style:{display:'flex',justifyContent:'center',gap:28,padding:'0 24px 72px',flexWrap:'wrap'}},
+      demoAvs.map((c,i)=>e('div',{key:i,style:{display:'flex',flexDirection:'column',alignItems:'center',gap:8}},
+        e('div',{style:{background:'linear-gradient(160deg,#0A1328,#180A2A)',border:'1px solid var(--b)',borderRadius:13,padding:'12px 12px 6px',animation:`float ${4+i}s ${i*.6}s ease-in-out infinite`}},e(AvatarSVG,{cfg:c,size:96})),
+        e('div',{style:{fontSize:11,color:'var(--gold)',letterSpacing:2,fontWeight:600}},c.avatarName)
+      ))
+    ),
+    e('div',{style:{borderTop:'1px solid var(--b)',borderBottom:'1px solid var(--b)'}},
+      e('div',{className:'section'},
+        e('div',{className:'sec-eyebrow'},e('div',{className:'tag'},'How it works')),
+        e('div',{className:'sec-title'},'From idea to video in 5 steps'),
+        e('div',{className:'sec-sub'},'No technical skills required.'),
+        e('div',{className:'steps-grid'},
+          [['01','✍️','Enter your topic','Type any topic — Groq AI writes the perfect script instantly in English or Tamil.'],
+           ['02','📝','Review the script','Edit or approve the AI-generated script.'],
+           ['03','🎨','Customize avatar','Choose gender, skin, hair, glasses, chain and name.'],
+           ['04','🎙️','Select voice','Pick from 8 voices in English and Tamil.'],
+           ['05','🎬','Generate & publish','Download video or publish to the public gallery.'],
+          ].map(([n,ic,t,d])=>e('div',{key:n,className:'step-item'},
+            e('div',{className:'step-n'},n),e('div',{className:'step-icon'},ic),
+            e('div',{className:'step-title'},t),e('div',{className:'step-desc'},d)
+          ))
+        )
+      )
+    ),
+    e('div',{className:'section'},
+      e('div',{className:'sec-eyebrow'},e('div',{className:'tag'},'Features')),
+      e('div',{className:'sec-title'},'Everything you need'),
+      e('div',{className:'sec-sub'},'Professional tools for creating and sharing AI avatar videos.'),
+      e('div',{className:'feat-grid'},
+        feats.map(([ic,t,d,tag])=>e('div',{key:t,className:'fc'},
+          e('div',{className:'fc-icon'},ic),
+          e('div',{className:'fc-title'},t),
+          e('div',{className:'fc-desc'},d),
+          e('div',{className:'fc-tag '+(tag==='pro'?'fc-pro':'fc-free')},tag==='pro'?'⭐ Pro — Soon':'✓ Free')
+        ))
+      )
+    ),
+    e('div',{style:{borderTop:'1px solid var(--b)',borderBottom:'1px solid var(--b)'}},
+      e('div',{className:'section'},
+        e('div',{className:'sec-eyebrow'},e('div',{className:'tag'},'Pricing')),
+        e('div',{className:'sec-title'},'Simple pricing'),
+        e('div',{className:'sec-sub'},'Start free forever.'),
+        e('div',{className:'price-grid'},
+          e('div',{className:'pc'},
+            e('div',{className:'pc-name'},'Free Plan',e('span',{style:{fontSize:10,padding:'2px 8px',background:'rgba(61,190,122,.1)',color:'var(--grn)',borderRadius:100,marginLeft:6,fontWeight:600}},'Active')),
+            e('div',{className:'pc-price'},'$0 ',e('small',null,'/ forever')),
+            ...priceFree.map(([f,y])=>e('div',{key:f,className:'pc-feat'},e('span',{className:y==='y'?'pf-y':'pf-n'},y==='y'?'✓':'✕'),f)),
+            e('button',{className:'btn-gold',style:{width:'100%',marginTop:14,fontSize:12},onClick:()=>onLogin('signup')},'Get started free')
+          ),
+          e('div',{className:'pc feat'},
+            e('div',{className:'pc-name'},'Pro Plan',e('span',{style:{fontSize:10,padding:'2px 8px',background:'var(--g3)',color:'var(--gold)',borderRadius:100,marginLeft:6,fontWeight:600}},'Soon')),
+            e('div',{className:'pc-price'},'$9 ',e('small',null,'/ month')),
+            ...pricePro.map(([f])=>e('div',{key:f,className:'pc-feat'},e('span',{className:'pf-y'},'✓'),f)),
+            e('button',{className:'btn-outline',style:{width:'100%',marginTop:14,opacity:.5,cursor:'default',fontSize:12}},'Notify me')
+          )
+        )
+      )
+    ),
+    e('div',{className:'cta-sec'},
+      e('div',{className:'cta-h'},'Ready to create your',e('br'),'first avatar video?'),
+      e('div',{className:'cta-sub'},'Join AvaForge free. No credit card needed.'),
+      e('button',{className:'btn-gold',style:{padding:'14px 38px',fontSize:14},onClick:()=>onLogin('signup')},'▶  Create for free')
+    ),
+    e('footer',{className:'footer'},
+      e('div',{className:'logo',style:{fontSize:18}},'AvaForge'),
+      e('div',{style:{display:'flex',gap:18}},
+        ['Privacy','Terms','Support','Contact'].map(l=>e('span',{key:l,className:'fl-link'},l))
+      ),
+      e('div',{style:{fontSize:11,color:'var(--td)'}},'© 2026 AvaForge. Built with Supabase & Groq AI.')
+    )
+  );
+}
+/* ── Studio ── */
+const STEPS=['Title','Script','Customize','Voice','Video'];
+const SIDX={title:0,script:1,customize:2,voice:3,generating:4,video:4};
+
+function Studio({authUser,profile,setProfile,onLogout}){
+  const [screen,setScreen]=useState('home');
+  const [videos,setVideos]=useState([]);
+  const [vLoad,setVLoad]=useState(true);
+  const [title,setTitle]=useState('');
+  const [sLang,setSLang]=useState('English');
+  const [scriptVal,setSV]=useState('');
+  const [sLoad,setSLoad]=useState(false);
+  const [scriptErr,setScriptErr]=useState('');
+  const [scriptMode,setScriptMode]=useState(null); // null=choose, 'ai'=generate, 'manual'=write own
+  const [cfg,setCfg]=useState({...DEF});
+  const [voice,setVoice]=useState(null);
+  const [speaking,setSpeaking]=useState(false);
+  const [prog,setProg]=useState(0);
+  const [mp4Load,setMp4Load]=useState(false);
+  const [mp4Prog,setMp4Prog]=useState(0);
+  const [mp4Done,setMp4Done]=useState(false);
+  const [playingVid,setPlayingVid]=useState(null);
+  const [playSpeak,setPlaySpeak]=useState(false);
+  const progRef=useRef(null);
+  const uc=(k,v)=>setCfg(c=>({...c,[k]:v}));
+
+  // Load videos
+  useEffect(()=>{
+    (async()=>{setVLoad(true);const{data}=await db.from('videos').select('*').order('created_at',{ascending:false}).limit(24);if(data)setVideos(data.map(mapV));setVLoad(false);})();
+  },[]);
+
+  // Speech API
+  const VMAP={David:{lang:'en-US',pitch:.95,rate:.92},James:{lang:'en-GB',pitch:.88,rate:.9},Emma:{lang:'en-US',pitch:1.15,rate:.94},Sophie:{lang:'en-GB',pitch:1.18,rate:.92},Arjun:{lang:'ta-IN',pitch:.9,rate:.88},Kumar:{lang:'ta-IN',pitch:.85,rate:.86},Priya:{lang:'ta-IN',pitch:1.12,rate:.9},Kavya:{lang:'ta-IN',pitch:1.18,rate:.88}};
+  const doSpeak=(text,vname)=>{
+    if(!window.speechSynthesis)return;
+    window.speechSynthesis.cancel();
+    const utt=new SpeechSynthesisUtterance(text);
+    const vm=VMAP[vname]||{lang:'en-US',pitch:1,rate:.9};
+    utt.lang=vm.lang;utt.pitch=vm.pitch;utt.rate=vm.rate;utt.volume=1;
+    const voices=window.speechSynthesis.getVoices();
+    const match=voices.find(v=>v.lang===vm.lang)||voices.find(v=>v.lang.startsWith(vm.lang.split('-')[0]))||voices[0];
+    if(match)utt.voice=match;
+    utt.onend=()=>setSpeaking(false);utt.onerror=()=>setSpeaking(false);
+    window.speechSynthesis.speak(utt);
+  };
+  const toggleSpeak=()=>{
+    if(speaking){window.speechSynthesis?.cancel();setSpeaking(false);}
+    else{
+      setSpeaking(true);
+      if(!window.speechSynthesis)return;
+      if(!window.speechSynthesis.getVoices().length){window.speechSynthesis.onvoiceschanged=()=>doSpeak(scriptVal,voice?.name||'David');}
+      else doSpeak(scriptVal,voice?.name||'David');
+    }
+  };
+  useEffect(()=>{if(screen!=='video'){window.speechSynthesis?.cancel();setSpeaking(false);}},[screen]);
+
+  // Groq script
+  const genScript=async()=>{
+    if(!title.trim())return;setSLoad(true);setScriptErr('');
+    const prompt=sLang==='Tamil'
+      ?`${title} என்ற தலைப்பில் 30-60 வினாடி பேசக்கூடிய ஒரு தமிழ் speech script எழுதுங்கள். script வரிகள் மட்டும் கொடுங்கள்.`
+      :`Write a 30-60 second professional speech script about "${title}". Return only the script sentences, no titles, asterisks, or labels.`;
+    try{
+      const resp=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+        body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:'You are a professional scriptwriter. Return only the script text.'},{role:'user',content:prompt}],temperature:.8,max_tokens:400})
+      });
+      const data=await resp.json();
+      if(!resp.ok){setScriptErr((data?.error?.message)||'Groq error '+resp.status);setSLoad(false);return;}
+      const txt=data?.choices?.[0]?.message?.content?.trim()||'';
+      if(!txt){setScriptErr('Empty response. Please try again.');setSLoad(false);return;}
+      setSV(txt);setScriptErr('');setScreen('script');
+    }catch(err){setScriptErr('Network error: '+err.message+'. Open from a web server for API calls.');}
+    setSLoad(false);
+  };
+
+  const startGen=()=>{setScreen('generating');setProg(0);setSpeaking(false);setMp4Done(false);progRef.current=setInterval(()=>{setProg(p=>{if(p>=100){clearInterval(progRef.current);setScreen('video');return 100;}return p+2;});},55);};
+
+  // MP4 canvas recorder
+  const downloadMP4=async()=>{
+    setMp4Load(true);setMp4Prog(0);setMp4Done(false);
+    window.speechSynthesis?.cancel();setSpeaking(false);
+    const W=640,H=480;
+    const canvas=document.createElement('canvas');
+    canvas.width=W;canvas.height=H;
+    canvas.style.cssText='position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:.01;pointer-events:none;';
+    document.body.appendChild(canvas);
+    const ctx=canvas.getContext('2d');
+    const draw=(elapsed,duration,mOpen,t)=>{
+      const skin=SKINS[cfg.skinTone]||'#F1C27D',hair=HAIRS[cfg.hairColor]||'#1C1C1C';
+      const fem=cfg.gender==='Female',cx=W/2,topY=38,sc=.82,s=v=>v*sc;
+      const prog2=Math.min(elapsed/duration,1);
+      // BG
+      ctx.fillStyle='#0A1328';ctx.fillRect(0,0,W,H);
+      const g=ctx.createLinearGradient(W*.3,0,W,H);g.addColorStop(0,'#0A1328');g.addColorStop(1,'#180A2A');
+      ctx.fillStyle=g;ctx.fillRect(W*.3,0,W*.7,H);
+      ctx.strokeStyle='rgba(201,168,76,.05)';ctx.lineWidth=.5;
+      for(let x=0;x<W;x+=52){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+      for(let y=0;y<H;y+=52){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+      // Body
+      ctx.fillStyle=fem?'#5B3A7E':'#1A2744';
+      ctx.beginPath();
+      ctx.moveTo(cx-s(155),H);ctx.quadraticCurveTo(cx-s(120),H-s(90),cx-s(70),H-s(118));
+      ctx.quadraticCurveTo(cx-s(28),H-s(136),cx,H-s(136));
+      ctx.quadraticCurveTo(cx+s(28),H-s(136),cx+s(70),H-s(118));
+      ctx.quadraticCurveTo(cx+s(120),H-s(90),cx+s(155),H);
+      ctx.closePath();ctx.fill();
+      // Neck
+      ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(cx-s(20),topY+s(218),s(40),s(46),s(10));ctx.fill();
+      // Chain
+      if(cfg.chain==='Gold chain'){ctx.strokeStyle='#FFD700';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-s(40),topY+s(250));ctx.quadraticCurveTo(cx,topY+s(282),cx+s(40),topY+s(250));ctx.stroke();ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(cx,topY+s(275),s(4),0,Math.PI*2);ctx.fill();}
+      else if(cfg.chain==='Silver chain'){ctx.strokeStyle='#C8C8C8';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx-s(40),topY+s(250));ctx.quadraticCurveTo(cx,topY+s(282),cx+s(40),topY+s(250));ctx.stroke();ctx.fillStyle='#C8C8C8';ctx.beginPath();ctx.arc(cx,topY+s(275),s(4),0,Math.PI*2);ctx.fill();}
+      // Face
+      const fg=ctx.createRadialGradient(cx,topY+s(138),s(10),cx,topY+s(138),s(100));fg.addColorStop(0,skin);fg.addColorStop(1,skin+'BB');
+      ctx.fillStyle=fg;ctx.beginPath();ctx.ellipse(cx,topY+s(138),s(88),s(100),0,0,Math.PI*2);ctx.fill();
+      // Hair
+      ctx.fillStyle=hair;
+      if(cfg.hairType==='Buzz Cut'){ctx.beginPath();ctx.ellipse(cx,topY+s(65),s(88),s(40),0,0,Math.PI*2);ctx.fill();}
+      else{
+        ctx.beginPath();ctx.moveTo(cx-s(88),topY+s(115));ctx.quadraticCurveTo(cx-s(84),topY+s(38),cx,topY+s(32));ctx.quadraticCurveTo(cx+s(84),topY+s(38),cx+s(88),topY+s(115));ctx.quadraticCurveTo(cx+s(78),topY+s(80),cx+s(58),topY+s(70));ctx.quadraticCurveTo(cx,topY+s(52),cx-s(58),topY+s(70));ctx.quadraticCurveTo(cx-s(78),topY+s(80),cx-s(88),topY+s(115));ctx.closePath();ctx.fill();
+        if(cfg.hairType==='Long'||fem){ctx.fillRect(cx-s(90),topY+s(82),s(22),s(170));ctx.fillRect(cx+s(68),topY+s(82),s(22),s(170));}
+        if(cfg.hairType==='Curly'){for(let i=0;i<6;i++){ctx.beginPath();ctx.arc(cx-s(52)+i*s(20),topY+s(44)+i%2*s(8),s(20),0,Math.PI*2);ctx.fill();}}
+      }
+      // Ears
+      ctx.fillStyle=skin;ctx.beginPath();ctx.ellipse(cx-s(88),topY+s(148),s(12),s(17),0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(cx+s(88),topY+s(148),s(12),s(17),0,0,Math.PI*2);ctx.fill();
+      // Eyes
+      if(cfg.sunglasses==='None'){
+        ctx.fillStyle='white';ctx.beginPath();ctx.ellipse(cx-s(30),topY+s(130),s(15),s(13),0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(cx+s(30),topY+s(130),s(15),s(13),0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#1a1a1a';ctx.beginPath();ctx.arc(cx-s(28),topY+s(131),s(8),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(cx+s(32),topY+s(131),s(8),0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='white';ctx.beginPath();ctx.arc(cx-s(24),topY+s(128),s(2.5),0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(cx+s(36),topY+s(128),s(2.5),0,Math.PI*2);ctx.fill();
+      }else{
+        const gc=cfg.sunglasses==='Aviator'?'rgba(10,20,50,.88)':cfg.sunglasses==='Round'?'rgba(10,40,20,.88)':'rgba(0,0,0,.9)';
+        const gs=cfg.sunglasses==='Aviator'?'#BFA060':'#666';
+        ctx.fillStyle=gc;ctx.strokeStyle=gs;ctx.lineWidth=2;
+        if(cfg.sunglasses==='Round'){ctx.beginPath();ctx.arc(cx-s(30),topY+s(130),s(19),0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(cx+s(30),topY+s(130),s(19),0,Math.PI*2);ctx.fill();ctx.stroke();}
+        else if(cfg.sunglasses==='Square'){ctx.beginPath();ctx.roundRect(cx-s(51),topY+s(118),s(42),s(26),4);ctx.fill();ctx.stroke();ctx.beginPath();ctx.roundRect(cx+s(9),topY+s(118),s(42),s(26),4);ctx.fill();ctx.stroke();}
+        else{ctx.beginPath();ctx.ellipse(cx-s(30),topY+s(130),s(21),s(17),0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(cx+s(30),topY+s(130),s(21),s(17),0,0,Math.PI*2);ctx.fill();ctx.stroke();}
+        ctx.strokeStyle=gs;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(cx-s(9),topY+s(129));ctx.lineTo(cx+s(9),topY+s(129));ctx.stroke();ctx.beginPath();ctx.moveTo(cx-s(90),topY+s(122));ctx.lineTo(cx-s(51),topY+s(128));ctx.stroke();ctx.beginPath();ctx.moveTo(cx+s(51),topY+s(128));ctx.lineTo(cx+s(90),topY+s(122));ctx.stroke();
+      }
+      // Eyebrows
+      const eb=cfg.hairColor==='Blonde'?'#8B6914':hair;
+      ctx.strokeStyle=eb;ctx.lineWidth=2.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(cx-s(48),topY+s(112));ctx.quadraticCurveTo(cx-s(30),topY+s(105),cx-s(14),topY+s(111));ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx+s(14),topY+s(111));ctx.quadraticCurveTo(cx+s(30),topY+s(105),cx+s(48),topY+s(112));ctx.stroke();
+      // Nose
+      ctx.fillStyle=skin;ctx.beginPath();ctx.moveTo(cx,topY+s(144));ctx.lineTo(cx-s(6),topY+s(162));ctx.quadraticCurveTo(cx,topY+s(167),cx+s(6),topY+s(162));ctx.closePath();ctx.fill();
+      // Mouth
+      if(mOpen){ctx.fillStyle='#7A1840';ctx.strokeStyle='#C06080';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(cx,topY+s(192),s(18),s(10),0,0,Math.PI*2);ctx.fill();ctx.stroke();}
+      else{ctx.strokeStyle=fem?'#C06080':'#906060';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx-s(18),topY+s(192));ctx.quadraticCurveTo(cx,topY+s(202),cx+s(18),topY+s(192));ctx.stroke();}
+      // Name
+      if(cfg.avatarName){ctx.font='bold 13px Georgia,serif';ctx.fillStyle='#C9A84C';ctx.textAlign='center';ctx.fillText(cfg.avatarName.toUpperCase().substring(0,14),cx,topY+s(300));}
+      // Title bar
+      ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(0,0,W,30);ctx.strokeStyle='rgba(201,168,76,.2)';ctx.lineWidth=.5;ctx.strokeRect(0,0,W,30);
+      ctx.font='500 12px sans-serif';ctx.fillStyle='rgba(237,232,223,.9)';ctx.textAlign='center';ctx.fillText(title.substring(0,58),W/2,19);
+      // Waveform
+      const wY=H-82,bars=20,gap=9,wl=(W-bars*gap)/2;
+      for(let i=0;i<bars;i++){const bh=mOpen?(4+Math.abs(Math.sin(t/100+i*.7))*15):3;ctx.fillStyle=`rgba(201,168,76,${.3+Math.abs(Math.sin(t/150+i))*.5})`;ctx.fillRect(wl+i*gap,wY-bh/2,3,bh);}
+      // Ticker
+      ctx.fillStyle='rgba(0,0,0,.65)';ctx.fillRect(0,H-42,W,42);ctx.strokeStyle='rgba(201,168,76,.18)';ctx.lineWidth=.5;ctx.strokeRect(0,H-42,W,42);
+      const scroll=((elapsed/1000)*55)%(W+scriptVal.length*7.5);
+      ctx.font='11px sans-serif';ctx.fillStyle='rgba(237,232,223,.8)';ctx.textAlign='left';ctx.fillText(scriptVal,W-scroll,H-18);
+      ctx.font='10px sans-serif';ctx.fillStyle='rgba(201,168,76,.75)';ctx.fillText((voice?.name||'')+' · '+(voice?.lang||''),10,H-5);
+      // Progress
+      ctx.fillStyle='rgba(201,168,76,.15)';ctx.fillRect(0,H-4,W,4);ctx.fillStyle='rgba(201,168,76,.88)';ctx.fillRect(0,H-4,W*prog2,4);
+    };
+    // ── Audio: Web Audio API speech synthesis capture ──
+    const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const audioDest=audioCtx.createMediaStreamDestination();
+
+    // Create voice-like oscillator speech sound
+    const makeSpeechAudio=()=>{
+      const words=scriptVal.trim().split(/\s+/);
+      const wpm=130,secPerWord=60/wpm;
+      let time=audioCtx.currentTime+0.1;
+      words.forEach((word,wi)=>{
+        // Each word = short voiced oscillator burst
+        const osc=audioCtx.createOscillator();
+        const gain=audioCtx.createGain();
+        const filter=audioCtx.createBiquadFilter();
+        filter.type='bandpass';
+        filter.frequency.value=180+Math.sin(wi*0.7)*60; // voice formant range
+        filter.Q.value=2;
+        osc.type='sawtooth';
+        osc.frequency.value=140+Math.sin(wi*1.3)*30; // natural pitch variation
+        osc.frequency.setValueAtTime(osc.frequency.value,time);
+        osc.frequency.linearRampToValueAtTime(osc.frequency.value*1.05,time+secPerWord*0.4);
+        osc.frequency.linearRampToValueAtTime(osc.frequency.value*0.95,time+secPerWord*0.8);
+        gain.gain.setValueAtTime(0,time);
+        gain.gain.linearRampToValueAtTime(0.12,time+0.02);
+        gain.gain.setValueAtTime(0.12,time+secPerWord*0.75);
+        gain.gain.linearRampToValueAtTime(0,time+secPerWord*0.9);
+        osc.connect(filter);filter.connect(gain);gain.connect(audioDest);
+        osc.start(time);osc.stop(time+secPerWord*0.9);
+        time+=secPerWord;
+        // Add brief silence between words
+        if(wi<words.length-1)time+=secPerWord*0.15;
+      });
+    };
+    makeSpeechAudio();
+
+    // Combine canvas video + audio into one stream
+    const videoStream=canvas.captureStream(30);
+    const combinedStream=new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...audioDest.stream.getAudioTracks()
+    ]);
+
+    const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(t=>MediaRecorder.isTypeSupported(t))||'video/webm';
+    const rec=new MediaRecorder(combinedStream,{mimeType:mime,videoBitsPerSecond:2000000,audioBitsPerSecond:128000});
+    const chunks=[];
+    rec.ondataavailable=ev=>{if(ev.data&&ev.data.size>0)chunks.push(ev.data);};
+    rec.onstop=()=>{
+      document.body.removeChild(canvas);
+      audioCtx.close();
+      const blob=new Blob(chunks,{type:mime});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=(title.replace(/[^a-zA-Z0-9]/g,'_').substring(0,28)||'avaforge')+'.'+(mime.includes('mp4')?'mp4':'webm');
+      document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+      setMp4Load(false);setMp4Prog(100);setMp4Done(true);setTimeout(()=>setMp4Done(false),5000);
+    };
+    const words2=scriptVal.trim().split(/\s+/).length;
+    const duration=Math.max(8000,Math.min(45000,Math.round((words2/130)*60000)));
+    const t0=performance.now();let mOpen=false,cnt=0;
+    rec.start(100);
+    const iv=setInterval(()=>{
+      const now=performance.now(),el=now-t0;
+      cnt++;if(cnt%4===0)mOpen=!mOpen;
+      draw(el,duration,mOpen,now);
+      setMp4Prog(Math.min(95,Math.floor((el/duration)*95)));
+      if(el>=duration){clearInterval(iv);rec.stop();}
+    },33);
+  };
+
+  const publish=async()=>{
+    const{data}=await db.from('videos').insert({user_id:authUser.id,title,script:scriptVal,voice_name:voice?.name||'David',language:voice?.lang||'English',config:cfg}).select().single();
+    if(data)setVideos(arr=>[mapV(data),...arr]);
+    setScreen('home');setTitle('');setSV('');setVoice(null);setCfg({...DEF});setSpeaking(false);setMp4Done(false);setScriptMode(null);
+  };
+
+  useEffect(()=>()=>clearInterval(progRef.current),[]);
+  const inFlow=['title','script','customize','voice','generating','video'].includes(screen);
+  const stepIdx=SIDX[screen]??-1;
+
+  // Profile screen
+  if(screen==='profile'){
+    return e(ProfileScreen,{profile,authUser,videos,setProfile,setScreen,onLogout});
+  }
+  // Explore screen
+  if(screen==='explore'){
+    return e(ExploreScreen,{profile,setScreen,onLogout});
+  }
+
+  return e('div',null,
+    e(NavBar,{profile,screen,setScreen,onLogout}),
+
+    // HOME
+    screen==='home'&&e('div',{className:'fadein'},
+      e('div',{className:'home-hero'},
+        e('div',{className:'tag',style:{marginBottom:16}},'Welcome back, '+(profile?.name?.split(' ')[0]||'there')+' 👋'),
+        e('h1',{className:'home-h1'},'Bring Your Words',e('br'),'to Life'),
+        e('p',{className:'home-sub'},'Create AI avatar videos with Groq-generated scripts in English and Tamil.'),
+        e('div',{style:{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}},
+          e('button',{className:'btn-gold',style:{padding:'12px 30px'},onClick:()=>setScreen('title')},'▶  Create Avatar Video'),
+          e('button',{className:'btn-outline',onClick:()=>setScreen('explore')},'🔭  Explore Features')
+        )
+      ),
+      e('div',{className:'stats-strip'},
+        [['⚡','AI Scripts','English & Tamil'],['🎨','8 Styles','Full customization'],['🎙️','8 Voices','Male & female'],['🗄️','Supabase','All data saved']].map(([ic,t,d])=>
+          e('div',{key:t,style:{textAlign:'center'}},e('div',{className:'ss-icon'},ic),e('div',{className:'ss-title'},t),e('div',{className:'ss-desc'},d))
+        )
+      ),
+      playingVid&&e(VideoModal,{vid:playingVid,onClose:()=>setPlayingVid(null)}),
+      e('div',{className:'sh'},e('div',{className:'sh-title'},'Community Videos'),e('div',{className:'sh-sub'},vLoad?'Loading from Supabase…':videos.length+' video'+(videos.length!==1?'s':'')+' published')),
+      vLoad?e('div',{style:{textAlign:'center',padding:28,color:'var(--td)',fontSize:13}},'⏳ Loading…')
+           :videos.length===0?e('div',{style:{textAlign:'center',padding:28,color:'var(--td)',fontSize:13}},'No videos yet. ',e('span',{style:{color:'var(--gold)',cursor:'pointer'},onClick:()=>setScreen('title')},'Be the first →'))
+           :e('div',{className:'vids-grid'},videos.map(v=>
+              e('div',{key:v.id,className:'vid-card',onClick:()=>setPlayingVid(v)},
+                e('div',{className:'vid-thumb'},
+                  e(AvatarSVG,{cfg:v.config,size:76}),
+                  e('div',{className:'vid-lang'},v.lang),
+                  e('div',{style:{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',opacity:0,transition:'opacity .2s',background:'rgba(0,0,0,.35)'},className:'play-overlay'},
+                    e('div',{style:{width:38,height:38,borderRadius:'50%',background:'rgba(201,168,76,.85)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,color:'#050810'}},'▶')
+                  )
+                ),
+                e('div',{className:'vid-body'},
+                  e('div',{className:'vid-t'},v.title),
+                  e('div',{className:'vid-s'},(v.script||'').substring(0,64)+'…'),
+                  e('div',{className:'vid-meta'},e('span',null,'🎙️ ',v.voiceName),e('span',{style:{color:'var(--td)'}},v.config?.gender))
+                )
+              )
+            ))
+    ),
+
+    // CREATE FLOW
+    inFlow&&e('div',{className:'flow-wrap fadein'},
+      screen!=='generating'&&e('div',{className:'steps-bar'},
+        STEPS.map((s,i)=>e(Fragment,{key:s},
+          e('div',{className:'sn'+(i===stepIdx?' active':i<stepIdx?' done':'')},
+            e('div',{className:'sdot'},i<stepIdx?'✓':i+1),e('span',null,s)
+          ),
+          i<STEPS.length-1&&e('div',{className:'sdash'})
+        ))
+      ),
+
+      // TITLE
+      screen==='title'&&e('div',{className:'fadein'},
+
+        // STEP 1 — Choose how to create script
+        !scriptMode&&e('div',{className:'card'},
+          e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:25,fontWeight:700,marginBottom:5}},'Create your script'),
+          e('p',{style:{color:'var(--tm)',fontSize:12,marginBottom:18,lineHeight:1.75,fontWeight:300}},'How would you like to create the script for your avatar video?'),
+          e('div',{className:'mode-cards'},
+            e('div',{className:'mode-card',onClick:()=>setScriptMode('ai')},
+              e('div',{className:'mode-icon'},'🤖'),
+              e('div',{className:'mode-title'},'Generate with AI'),
+              e('div',{className:'mode-desc'},'Type a topic and Groq AI writes a professional script instantly in English or Tamil.')
+            ),
+            e('div',{className:'mode-card',onClick:()=>setScriptMode('manual')},
+              e('div',{className:'mode-icon'},'✍️'),
+              e('div',{className:'mode-title'},'Write your own script'),
+              e('div',{className:'mode-desc'},'Write your own script manually and bring it to life with your custom avatar.')
+            )
+          )
+        ),
+
+        // STEP 1A — AI Generation
+        scriptMode==='ai'&&e('div',{className:'card'},
+          e('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:14}},
+            e('button',{className:'btn-ghost',style:{padding:'6px 12px',fontSize:11},onClick:()=>{setScriptMode(null);setScriptErr('');}},'← Back'),
+            e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:22,fontWeight:700}},'🤖 Generate with AI')
+          ),
+          e('p',{style:{color:'var(--tm)',fontSize:12,marginBottom:16,lineHeight:1.75,fontWeight:300}},'Enter your topic — Groq AI will write a professional 30-60 second script instantly.'),
+          e('div',{className:'ig'},
+            e('label',{className:'lbl'},'Video title or topic'),
+            e('input',{className:'inp',placeholder:'e.g. The Future of AI in Healthcare',value:title,onInput:ev=>setTitle(ev.target.value),onKeyDown:ev=>ev.key==='Enter'&&!sLoad&&title.trim()&&genScript()})
+          ),
+          e('div',{className:'ig'},
+            e('label',{className:'lbl'},'Script language'),
+            e('div',{className:'pills'},
+              ['English','Tamil'].map(l=>e('button',{key:l,className:'pill'+(sLang===l?' on':''),onClick:()=>setSLang(l)},l==='English'?'🇬🇧 English':'🇮🇳 Tamil'))
+            )
+          ),
+          scriptErr&&e('div',{style:{padding:'10px 13px',background:'rgba(226,75,74,.07)',border:'1px solid rgba(226,75,74,.28)',borderRadius:8,fontSize:12,color:'var(--red)',marginBottom:12,lineHeight:1.65}},'⚠ ',scriptErr),
+          e('button',{className:'btn-gold',style:{width:'100%'},onClick:genScript,disabled:!title.trim()||sLoad},sLoad?'✦ Generating with Groq AI…':'✦ Generate script with Groq AI →')
+        ),
+
+        // STEP 1B — Write own script
+        scriptMode==='manual'&&e('div',{className:'card'},
+          e('div',{style:{display:'flex',alignItems:'center',gap:10,marginBottom:14}},
+            e('button',{className:'btn-ghost',style:{padding:'6px 12px',fontSize:11},onClick:()=>setScriptMode(null)},'← Back'),
+            e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:22,fontWeight:700}},'✍️ Write your own script')
+          ),
+          e('p',{style:{color:'var(--tm)',fontSize:12,marginBottom:16,lineHeight:1.75,fontWeight:300}},'Enter your video title and write your script below. Then customize your avatar.'),
+          e('div',{className:'ig'},
+            e('label',{className:'lbl'},'Video title'),
+            e('input',{className:'inp',placeholder:'e.g. My Introduction Video',value:title,onInput:ev=>setTitle(ev.target.value)})
+          ),
+          e('div',{className:'ig'},
+            e('label',{className:'lbl'},'Script language'),
+            e('div',{className:'pills'},
+              ['English','Tamil'].map(l=>e('button',{key:l,className:'pill'+(sLang===l?' on':''),onClick:()=>setSLang(l)},l==='English'?'🇬🇧 English':'🇮🇳 Tamil'))
+            )
+          ),
+          e('div',{className:'ig'},
+            e('label',{className:'lbl'},'Your script'),
+            e('textarea',{className:'inp',style:{minHeight:140},placeholder:'Write your script here… Speak naturally, as if talking to your audience.',value:scriptVal,onInput:ev=>setSV(ev.target.value)})
+          ),
+          e('div',{style:{fontSize:11,color:'var(--td)',marginBottom:14,lineHeight:1.7}},
+            '💡 Tip: A 30-60 second script is about 75-150 words. ',
+            e('span',{style:{color:'var(--gold)'}},scriptVal.trim()?(scriptVal.trim().split(/\s+/).length+' words'):'0 words')
+          ),
+          e('button',{className:'btn-gold',style:{width:'100%'},onClick:()=>{if(title.trim()&&scriptVal.trim())setScreen('customize');},disabled:!title.trim()||!scriptVal.trim()},'Customize avatar →')
+        )
+      ),
+
+      // SCRIPT
+      screen==='script'&&e('div',{className:'card fadein'},
+        e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:25,fontWeight:700,marginBottom:4}},'🤖 AI Generated Script'),
+        e('p',{style:{color:'var(--tm)',fontSize:12,marginBottom:13,fontWeight:300}},'Review and edit the AI-generated script. Fully editable.'),
+        e('div',{style:{padding:'7px 11px',background:'var(--g3)',border:'1px solid var(--b)',borderRadius:7,marginBottom:12,fontSize:11,color:'var(--gold)',display:'flex',gap:12}},
+          e('span',null,'📄 ',title),e('span',null,'·'),e('span',null,'🌐 ',sLang)
+        ),
+        e('div',{className:'ig'},e('label',{className:'lbl'},'Script content'),e('textarea',{className:'inp',value:scriptVal,onInput:ev=>setSV(ev.target.value)})),
+        e('div',{style:{fontSize:11,color:'var(--td)',marginBottom:10}},
+          e('span',{style:{color:'var(--gold)'}},scriptVal.trim()?(scriptVal.trim().split(/\s+/).length+' words'):'0 words'),' written'
+        ),
+        e('div',{className:'fe'},e('button',{className:'btn-ghost',onClick:()=>setScreen('title')},'← Back'),e('button',{className:'btn-gold grow',onClick:()=>setScreen('customize')},'Customize avatar →'))
+      ),
+
+      // CUSTOMIZE
+      screen==='customize'&&e('div',{className:'cust-layout fadein'},
+        e('div',{className:'card'},
+          e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:23,fontWeight:700,marginBottom:4}},'Customize avatar'),
+          e('p',{style:{color:'var(--tm)',fontSize:12,marginBottom:14,fontWeight:300}},'Design your avatar\'s complete look.'),
+          e('div',{className:'ig'},e('label',{className:'lbl'},'Avatar name'),e('input',{className:'inp',placeholder:'e.g. ALEX, PRIYA…',value:cfg.avatarName,onInput:ev=>uc('avatarName',ev.target.value)})),
+          ...[['Gender',['Male','Female'],'gender'],['Age range',['Teen','Young Adult'],'age']].map(([l,opts,k])=>
+            e('div',{key:k,className:'ig'},e('label',{className:'lbl'},l),e('div',{className:'pills'},opts.map(o=>e('button',{key:o,className:'pill'+(cfg[k]===o?' on':''),onClick:()=>uc(k,o)},o))))
+          ),
+          e('div',{className:'ig'},e('label',{className:'lbl'},'Skin tone'),e('div',{className:'swatches'},Object.entries(SKINS).map(([n,c])=>e('div',{key:n,title:n,className:'sw'+(cfg.skinTone===n?' on':''),style:{background:c},onClick:()=>uc('skinTone',n)})))),
+          e('div',{className:'ig'},e('label',{className:'lbl'},'Hair type'),e('div',{className:'pills'},HAIR_TYPES.map(h=>e('button',{key:h,className:'pill'+(cfg.hairType===h?' on':''),onClick:()=>uc('hairType',h)},h)))),
+          e('div',{className:'ig'},e('label',{className:'lbl'},'Hair color'),e('div',{className:'swatches'},Object.entries(HAIRS).map(([n,c])=>e('div',{key:n,title:n,className:'sw'+(cfg.hairColor===n?' on':''),style:{background:c,border:n==='Black'?'2px solid #555':undefined},onClick:()=>uc('hairColor',n)})))),
+          e('div',{className:'ig'},e('label',{className:'lbl'},'Sunglasses'),e('div',{className:'pills'},GLASSES.map(g=>e('button',{key:g,className:'pill'+(cfg.sunglasses===g?' on':''),onClick:()=>uc('sunglasses',g)},g)))),
+          e('div',{className:'ig'},e('label',{className:'lbl'},'Chain / accessory'),e('div',{className:'pills'},CHAINS.map(c=>e('button',{key:c,className:'pill'+(cfg.chain===c?' on':''),onClick:()=>uc('chain',c)},c)))),
+          e('div',{className:'fe'},e('button',{className:'btn-ghost',onClick:()=>setScreen('script')},'← Back'),e('button',{className:'btn-gold grow',onClick:()=>setScreen('voice')},'Select voice →'))
+        ),
+        e('div',{className:'av-preview'},e('div',{className:'av-prev-lbl'},'Live preview'),e(AvatarSVG,{cfg,speaking:false,size:150}))
+      ),
+
+      // VOICE
+      screen==='voice'&&e('div',{className:'card fadein'},
+        e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:25,fontWeight:700,marginBottom:4}},'Select voice'),
+        e('p',{style:{color:'var(--tm)',fontSize:12,marginBottom:16,fontWeight:300}},'Choose the voice your avatar will speak in.'),
+        ...['English','Tamil'].map(lang=>e('div',{key:lang,style:{marginBottom:17}},
+          e('div',{className:'slbl2'},lang==='English'?'🇬🇧':'🇮🇳',' ',lang,' voices'),
+          e('div',{className:'vgrid'},VOICES.filter(v=>v.lang===lang).map(v=>
+            e('div',{key:v.id,className:'vc'+(voice?.id===v.id?' on':''),onClick:()=>setVoice(v)},
+              e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:2}},
+                e('span',{className:'vc-name'},v.name),
+                e('span',{className:'vcb '+(v.gender==='Male'?'vcb-m':'vcb-f')},v.gender)
+              ),
+              e('div',{className:'vc-sub'},v.desc,' accent')
+            )
+          ))
+        )),
+        e('div',{className:'fe'},e('button',{className:'btn-ghost',onClick:()=>setScreen('customize')},'← Back'),e('button',{className:'btn-gold grow',onClick:startGen,disabled:!voice},'🎬  Generate video →'))
+      ),
+
+      // GENERATING
+      screen==='generating'&&e('div',{className:'card fadein gen-ctr'},
+        e(AvatarSVG,{cfg,speaking:prog>55,size:118}),
+        e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:23,fontWeight:700,marginTop:18}},'Generating your video'),
+        e('p',{style:{color:'var(--tm)',fontSize:12,marginTop:5,lineHeight:1.75,fontWeight:300}},'Rendering avatar with lip sync…'),
+        e('div',{style:{width:'100%',maxWidth:280,margin:'20px auto 5px'}},e('div',{className:'prog-bar'},e('div',{className:'prog-fill',style:{width:prog+'%'}}))),
+        e('div',{className:'gen-pct'},prog+'%'),
+        e('div',{className:'gen-st'},prog<28?'⚙️ Processing script…':prog<56?'🎨 Rendering avatar…':prog<84?'🎙️ Syncing voice…':'✦ Finalizing…')
+      ),
+
+      // VIDEO
+      screen==='video'&&e('div',{className:'fadein'},
+        e('div',{className:'card',style:{marginBottom:12}},
+          e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}},
+            e('h2',{style:{fontFamily:'Cormorant Garamond,serif',fontSize:21,fontWeight:700}},'Your video is ready!'),
+            e('div',{className:'badge-ok'},'● Live')
+          ),
+          e('div',{className:'vid-frame'},
+            e('div',{className:'vf-bar'},
+              e('div',{className:'vfd',style:{background:'#FF5F57'}}),e('div',{className:'vfd',style:{background:'#FFBD2E'}}),e('div',{className:'vfd',style:{background:'#28CA41'}}),
+              e('span',{className:'vf-url'},'avaforge.studio/',title.toLowerCase().replace(/[^a-z0-9]/g,'-').substring(0,24))
+            ),
+            e('div',{className:'vf-stage'},
+              e(AvatarSVG,{cfg,speaking,size:118}),
+              e('div',{className:'vid-ctls'},
+                e('button',{className:'play-btn'+(speaking?' on':''),onClick:toggleSpeak},speaking?'⏸':'▶'),
+                speaking&&e('div',{className:'waveform'},WAVE_H.map((h,i)=>e('div',{key:i,className:'wbar',style:{height:h,animation:`wavebar ${.35+i%3*.15}s ease-in-out ${i*.06}s infinite alternate`}}))),
+                e('span',{style:{fontSize:11,color:'var(--tm)'}},'🎙️ ',voice?.name,' · ',voice?.lang)
+              )
+            ),
+            speaking&&e('div',{className:'ticker-wrap'},e('span',{className:'ticker-txt'},scriptVal))
+          )
+        ),
+        e('div',{className:'card',style:{marginBottom:12}},e('div',{className:'slbl2'},'Script'),e('p',{style:{fontSize:12,color:'var(--tm)',lineHeight:1.9,fontWeight:300}},scriptVal)),
+        e('div',{className:'fe'},
+          e('button',{className:'btn-ghost',onClick:()=>{setSpeaking(false);window.speechSynthesis?.cancel();setScreen('voice');}},'← Re-do'),
+          e('button',{className:'btn-dl',onClick:downloadMP4,disabled:mp4Load},
+            mp4Load?e('span',{style:{display:'flex',alignItems:'center',gap:7}},
+              e('span',{style:{width:11,height:11,border:'2px solid rgba(61,190,122,.3)',borderTop:'2px solid var(--grn)',borderRadius:'50%',animation:'spin .7s linear infinite',display:'inline-block'}}),
+              'Recording… ',mp4Prog,'%'
+            ):mp4Done?'✅ Downloaded!':'⬇ Download Video'
+          ),
+          e('button',{className:'btn-gold grow',onClick:publish},'📤  Publish to Gallery')
+        ),
+        mp4Load&&e('div',{style:{marginTop:10}},
+          e('div',{style:{height:3,background:'rgba(61,190,122,.12)',borderRadius:2,overflow:'hidden'}},
+            e('div',{style:{height:'100%',width:mp4Prog+'%',background:'linear-gradient(90deg,#3DBE7A,#5DECA0)',borderRadius:2,transition:'width .15s'}})
+          ),
+          e('div',{style:{fontSize:11,color:'var(--tm)',marginTop:5,textAlign:'center'}},'🎬 Recording avatar video — please wait…')
+        ),
+        mp4Done&&e('div',{style:{marginTop:8,fontSize:11,color:'var(--grn)',textAlign:'center'}},'✅ Video saved to your Downloads folder!')
+      )
+    )
+  );
+}
+
+/* ── Profile Screen ── */
+function ProfileScreen({profile,authUser,videos,setProfile,setScreen,onLogout}){
+  const [en,setEn]=useState(profile?.name||'');
+  const [eb,setEb]=useState(profile?.bio||'');
+  const [ea,setEa]=useState(profile?.avatar||'🧑');
+  const [saved,setSaved]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const myVids=videos.filter(v=>v.user_id===authUser.id);
+  const [myV,setMyV]=useState(myVids);
+  useEffect(()=>setMyV(videos.filter(v=>v.user_id===authUser.id)),[videos]);
+  const save=async()=>{setSaving(true);await db.from('profiles').update({name:en,bio:eb,avatar:ea}).eq('id',authUser.id);setProfile(p=>({...p,name:en,bio:eb,avatar:ea}));setSaving(false);setSaved(true);setTimeout(()=>setSaved(false),2600);};
+  const del=async id=>{await db.from('videos').delete().eq('id',id);setMyV(a=>a.filter(v=>v.id!==id));};
+  return e('div',null,
+    e(NavBar,{profile:{...profile,avatar:ea,name:en},screen:'profile',setScreen,onLogout}),
+    e('div',{className:'profile-wrap fadein'},
+      e('div',{className:'ph-card'},
+        e('div',{className:'ph-av'},ea),
+        e('div',{style:{flex:1}},e('div',{className:'ph-name'},profile?.name),e('div',{className:'ph-email'},profile?.email),e('div',{className:'badge-gold'},'✦ Free Plan · AvaForge Member'))
+      ),
+      e('div',{className:'sc-row'},
+        e('div',{className:'sc'},e('div',{className:'sc-v'},videos.length),e('div',{className:'sc-l'},'Community videos')),
+        e('div',{className:'sc'},e('div',{className:'sc-v'},myVids.length),e('div',{className:'sc-l'},'My videos')),
+        e('div',{className:'sc'},e('div',{className:'sc-v'},profile?.joined||'2026'),e('div',{className:'sc-l'},'Joined'))
+      ),
+      e('div',{className:'edit-card'},
+        e('div',{className:'edit-title'},'✏️ Edit profile',saved&&e('span',{className:'saved-t'},'✓ Saved!')),
+        e('div',{style:{marginBottom:11}},
+          e('div',{className:'edit-lbl',style:{marginBottom:5}},'Profile emoji'),
+          e('div',{className:'avp-row'},AVATARS.map(a=>e('div',{key:a,className:'avp'+(ea===a?' on':''),onClick:()=>setEa(a)},a)))
+        ),
+        e('div',{className:'edit-grid'},
+          e('div',null,e('label',{className:'edit-lbl'},'Display name'),e('input',{className:'edit-inp',value:en,onChange:ev=>setEn(ev.target.value),placeholder:'Your name'})),
+          e('div',null,e('label',{className:'edit-lbl'},'Email'),e('input',{className:'edit-inp',value:profile?.email||'',disabled:true,style:{opacity:.38}}))
+        ),
+        e('div',{style:{marginBottom:12}},e('label',{className:'edit-lbl'},'Bio'),e('input',{className:'edit-inp',value:eb,onChange:ev=>setEb(ev.target.value),placeholder:'Tell the community about yourself…'})),
+        e('button',{className:'btn-gold',onClick:save,disabled:saving,style:{padding:'9px 22px',fontSize:12}},saving?'Saving…':'Save changes')
+      ),
+      e('div',{className:'mv-card'},
+        e('div',{className:'mv-title'},'🎬 My videos ',e('span',{style:{fontSize:11,color:'var(--td)',fontWeight:400}},'(',myV.length,' videos)')),
+        myV.length===0?e('div',{className:'empty'},'No videos yet. ',e('span',{style:{color:'var(--gold)',cursor:'pointer'},onClick:()=>setScreen('title')},'Create your first →'))
+          :myV.slice(0,8).map(v=>e('div',{key:v.id,className:'mv-row'},
+            e('div',{className:'mv-thumb'},e(AvatarSVG,{cfg:v.config,size:30})),
+            e('div',{className:'mv-info'},e('div',{className:'mv-t'},v.title),e('div',{className:'mv-m'},'🎙️ ',v.voiceName,' · ',v.lang)),
+            e('button',{className:'del-btn',onClick:()=>del(v.id)},'✕')
+          ))
+      )
+    )
+  );
+}
+
+/* ── Explore Screen ── */
+function ExploreScreen({profile,setScreen,onLogout}){
+  const feats=[['⚡','AI Script Generator','Groq AI (Llama 3.3) writes a professional speech script instantly for any topic, in English or Tamil.','free'],['🎨','Avatar Customizer','Full control: gender, age, 5 skin tones, 5 hair types, 5 hair colors, 4 sunglasses styles, 3 chain options.','free'],['🎙️','8 Voice Options','4 English (American/British) + 4 Tamil voices (Chennai, Madurai, Coimbatore, Tirunelveli).','free'],['💬','Lip Sync','Avatar mouth moves naturally with animated waveform and live script ticker.','free'],['🌐','Tamil Language','Native Tamil script generation and speech — unique in avatar tools.','free'],['🗄️','Supabase Backend','All profiles and videos saved permanently to your Supabase database.','free'],['📤','Public Gallery','Publish videos to the community gallery in real time.','free'],['👤','Profile Dashboard','Stats, edit profile, manage videos — all synced to Supabase.','free'],['⬇️','Download Video','Download your avatar video as .webm or .mp4 file.','free'],['⭐','Pro Voices','Studio-quality voices — coming soon.','pro'],['🎬','HD Video Export','Export MP4 with full audio — coming soon.','pro']];
+  return e('div',null,
+    e(NavBar,{profile,screen:'explore',setScreen,onLogout}),
+    e('div',{className:'explore-wrap fadein'},
+      e('div',{style:{textAlign:'center',marginBottom:38}},
+        e('div',{style:{marginBottom:10}},e('div',{className:'tag'},'Platform features')),
+        e('div',{className:'sec-title',style:{marginBottom:10}},'Everything in AvaForge'),
+        e('div',{className:'sec-sub',style:{margin:'0 auto'}},'All data stored permanently in Supabase.')
+      ),
+      e('div',{className:'feat-grid',style:{marginBottom:28}},
+        feats.map(([ic,t,d,tag])=>e('div',{key:t,className:'fc'},
+          e('div',{className:'fc-icon'},ic),e('div',{className:'fc-title'},t),e('div',{className:'fc-desc'},d),
+          e('div',{className:'fc-tag '+(tag==='pro'?'fc-pro':'fc-free')},tag==='pro'?'⭐ Pro — Soon':'✓ Free')
+        ))
+      ),
+      e('div',{style:{fontSize:13,fontWeight:600,color:'var(--tx)',marginBottom:11}},'Plans & pricing'),
+      e('div',{className:'price-grid',style:{maxWidth:'100%'}},
+        e('div',{className:'pc'},e('div',{className:'pc-name'},'Free Plan',e('span',{style:{fontSize:10,padding:'2px 8px',background:'rgba(61,190,122,.1)',color:'var(--grn)',borderRadius:100,marginLeft:6}},'Active')),e('div',{className:'pc-price'},'$0 ',e('small',null,'/ forever')),
+          ...[['AI scripts & avatars','y'],['Supabase storage','y'],['8 voices EN+Tamil','y'],['Public gallery','y'],['HD MP4 export','n'],['Pro voices','n']].map(([f,y])=>e('div',{key:f,className:'pc-feat'},e('span',{className:y==='y'?'pf-y':'pf-n'},y==='y'?'✓':'✕'),f))
+        ),
+        e('div',{className:'pc feat'},e('div',{className:'pc-name'},'Pro Plan',e('span',{style:{fontSize:10,padding:'2px 8px',background:'var(--g3)',color:'var(--gold)',borderRadius:100,marginLeft:6}},'Soon')),e('div',{className:'pc-price'},'$9 ',e('small',null,'/ month')),
+          ...[['AI scripts & avatars'],['Supabase storage'],['8 voices EN+Tamil'],['Public gallery'],['HD MP4 export'],['Pro voices']].map(([f])=>e('div',{key:f,className:'pc-feat'},e('span',{className:'pf-y'},'✓'),f))
+        )
+      )
+    )
+  );
+}
+
+/* ── VideoModal ── */
+function VideoModal({vid,onClose}){
+  const [speaking,setSpeaking]=useState(false);
+  const VMAP2={David:{lang:'en-US',pitch:.95,rate:.92},James:{lang:'en-GB',pitch:.88,rate:.9},Emma:{lang:'en-US',pitch:1.15,rate:.94},Sophie:{lang:'en-GB',pitch:1.18,rate:.92},Arjun:{lang:'ta-IN',pitch:.9,rate:.88},Kumar:{lang:'ta-IN',pitch:.85,rate:.86},Priya:{lang:'ta-IN',pitch:1.12,rate:.9},Kavya:{lang:'ta-IN',pitch:1.18,rate:.88}};
+  const WAVE_H2=[8,16,22,14,20,10,18,24,12,20,16,8];
+  const doSpeak2=()=>{
+    if(!window.speechSynthesis)return;
+    window.speechSynthesis.cancel();
+    const utt=new SpeechSynthesisUtterance(vid.script||'');
+    const vm=VMAP2[vid.voiceName]||{lang:'en-US',pitch:1,rate:.9};
+    utt.lang=vm.lang;utt.pitch=vm.pitch;utt.rate=vm.rate;utt.volume=1;
+    const voices=window.speechSynthesis.getVoices();
+    const match=voices.find(v=>v.lang===vm.lang)||voices.find(v=>v.lang.startsWith(vm.lang.split('-')[0]))||voices[0];
+    if(match)utt.voice=match;
+    utt.onend=()=>setSpeaking(false);utt.onerror=()=>setSpeaking(false);
+    window.speechSynthesis.speak(utt);
+  };
+  const toggleSpeak2=()=>{
+    if(speaking){window.speechSynthesis?.cancel();setSpeaking(false);}
+    else{setSpeaking(true);if(!window.speechSynthesis)return;if(!window.speechSynthesis.getVoices().length){window.speechSynthesis.onvoiceschanged=doSpeak2;}else doSpeak2();}
+  };
+  useEffect(()=>()=>{window.speechSynthesis?.cancel();},[]);
+  return e('div',{className:'vid-modal-overlay',onClick:ev=>{if(ev.target.className==='vid-modal-overlay')onClose();}},
+    e('div',{className:'vid-modal fadein'},
+      e('div',{className:'vid-modal-bar'},
+        e('div',{className:'vid-modal-title'},vid.title),
+        e('button',{className:'vid-modal-close',onClick:onClose},'✕')
+      ),
+      e('div',{className:'vid-modal-stage'},
+        e(AvatarSVG,{cfg:vid.config||DEF,speaking,size:130}),
+        e('div',{className:'vid-modal-ctls'},
+          e('button',{className:'play-btn'+(speaking?' on':''),onClick:toggleSpeak2},speaking?'⏸':'▶'),
+          speaking&&e('div',{className:'waveform'},WAVE_H2.map((h,i)=>e('div',{key:i,className:'wbar',style:{height:h,animation:`wavebar ${.35+i%3*.15}s ease-in-out ${i*.06}s infinite alternate`}}))),
+          e('span',{style:{fontSize:11,color:'rgba(237,232,223,.55)'}},'🎙️ ',vid.voiceName,' · ',vid.lang)
+        )
+      ),
+      speaking&&e('div',{className:'vid-modal-ticker'},e('span',{className:'ticker-txt'},vid.script||'')),
+      e('div',{className:'vid-modal-script'},vid.script||''),
+      e('div',{className:'vid-modal-meta'},
+        e('span',null,'🎙️ ',vid.voiceName,' (',vid.lang,')'),
+        e('span',{style:{color:'var(--gold)'}},vid.config?.gender||'')
+      )
+    )
+  );
+}
+
+/* ── App ── */
+function App(){
+  const [authUser,setAU]=useState(null);
+  const [profile,setProfile]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [authScreen,setAS]=useState(null);
+
+  useEffect(()=>{
+    const t=setTimeout(()=>setLoading(false),4000);
+    (async()=>{
+      try{
+        const res=await Promise.race([db.auth.getSession(),new Promise(r=>setTimeout(()=>r({data:{session:null}}),3500))]);
+        const session=res?.data?.session;
+        if(session?.user){setAU(session.user);const p=await fetchProfile(session.user.id);setProfile(p||null);}
+      }catch(err){console.warn('Auth:',err);}
+      finally{clearTimeout(t);setLoading(false);}
+    })();
+    let unsub=null;
+    try{const{data}=db.auth.onAuthStateChange(async(ev,session)=>{try{if(session&&(ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED')){setAU(session.user);const p=await fetchProfile(session.user.id);setProfile(p||null);setAS(null);}else if(ev==='SIGNED_OUT'){setAU(null);setProfile(null);}}catch{}});unsub=data?.subscription;}catch{}
+    return()=>{clearTimeout(t);try{unsub?.unsubscribe();}catch{}};
+  },[]);
+
+  const handleLogout=async()=>{try{await db.auth.signOut();}catch{}setAU(null);setProfile(null);setAS(null);};
+  const handleLogin=(u,p)=>{setAU(u);setProfile(p);setAS(null);};
+
+  if(loading)return e('div',{className:'load-full'},
+    e('div',{className:'logo',style:{fontSize:30,fontFamily:'Cormorant Garamond,serif'}},'AvaForge'),
+    e('div',{className:'spinner'}),
+    e('div',{style:{fontSize:12,color:'var(--td)',marginTop:4}},'Loading AvaForge…')
+  );
+  if(authScreen)return e(AuthPage,{startTab:authScreen,onLogin:handleLogin});
+  if(!authUser||!profile)return e(Landing,{onLogin:tab=>setAS(tab)});
+  return e(Studio,{authUser,profile,setProfile,onLogout:handleLogout});
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(e(App));
+</script>
+<style>@keyframes wavebar{0%{height:4px}100%{height:22px}}</style>
+</body>
+</html>
